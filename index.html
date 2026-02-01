@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>创想枢纽 | The Synthesis Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;700&family=Noto+Serif+SC:wght@400;700&family=Roboto+Mono:wght@400&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #0a0a0f;
+            --text-color: #e0e0e0;
+            --text-color-muted: #999;
+            --accent-color-left: #ff3b8d;
+            --accent-color-right: #00f2ff;
+            
+            --font-main: 'Manrope', sans-serif;
+            --font-serif-sc: 'Noto Serif SC', serif;
+            --font-mono: 'Roboto Mono', monospace;
+
+            --transition-duration: 0.8s;
+            --transition-easing: cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-main);
+        }
+
+        .container { display: flex; width: 100%; height: 100%; position: relative; }
+
+        .panel {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            transition: flex var(--transition-duration) var(--transition-easing);
+            cursor: pointer;
+        }
+
+        .panel-left { border-right: 1px solid rgba(255, 255, 255, 0.1); }
+        .panel-right { border-left: 1px solid rgba(255, 255, 255, 0.1); }
+        
+        .container.left-hover .panel-left { flex: 3; }
+        .container.left-hover .panel-right { flex: 0.75; }
+        .container.right-hover .panel-right { flex: 3; }
+        .container.right-hover .panel-left { flex: 0.75; }
+
+        .visual-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            transition: transform var(--transition-duration) var(--transition-easing), opacity 0.6s ease;
+        }
+
+        .container.left-hover .panel-right .visual-bg,
+        .container.right-hover .panel-left .visual-bg {
+            transform: scale(0.9);
+            opacity: 0.3;
+        }
+        
+        #keywords-canvas { background: radial-gradient(circle at 50% 50%, rgba(255, 59, 141, 0.08) 0%, transparent 70%); }
+        #json-canvas-container { background: radial-gradient(circle at 50% 50%, rgba(0, 242, 255, 0.08) 0%, transparent 70%); }
+
+        .content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transform: translate(-50%, -40%);
+            transition: opacity 0.6s ease-out 0.2s, transform 0.6s ease-out 0.2s;
+            pointer-events: none;
+        }
+        
+        .panel:hover .content { opacity: 1; transform: translate(-50%, -50%); }
+
+        h2 {
+            font-family: var(--font-serif-sc);
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            letter-spacing: 2px;
+            line-height: 1.4;
+        }
+        .panel-left h2 { color: var(--accent-color-left); }
+        .panel-right h2 { color: var(--accent-color-right); }
+
+        h2 .subtitle {
+            font-family: var(--font-main);
+            font-size: clamp(0.8rem, 2.5vw, 1.1rem);
+            font-weight: 400;
+            letter-spacing: 1px;
+            color: var(--text-color-muted);
+            white-space: nowrap;
+        }
+
+        p {
+            font-size: clamp(0.9rem, 2vw, 1.1rem);
+            line-height: 1.8;
+            color: var(--text-color-muted);
+            margin-bottom: 2.5rem;
+            max-width: 420px;
+        }
+
+        .cta-button {
+            display: inline-block;
+            text-decoration: none;
+            color: var(--text-color);
+            padding: 12px 32px;
+            border: 2px solid;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: background-color 0.3s ease, color 0.3s ease, transform 0.3s ease;
+            pointer-events: all;
+        }
+        
+        .cta-button:hover { transform: translateY(-3px); }
+
+        .panel-left .cta-button { border-color: var(--accent-color-left); }
+        .panel-right .cta-button { border-color: var(--accent-color-right); }
+
+        .panel-left .cta-button:hover { background-color: var(--accent-color-left); color: var(--bg-color); }
+        .panel-right .cta-button:hover { background-color: var(--accent-color-right); color: var(--bg-color); }
+
+        .initial-hint {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--text-color-muted);
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            opacity: 1;
+            transition: opacity 0.5s ease;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .container.interaction-started .initial-hint { opacity: 0; }
+        
+        @media (max-width: 768px) {
+            .container { flex-direction: column; }
+            .panel { flex: 1 !important; transition: none; }
+            .panel-left { border-right: none; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+            .panel-right { border-left: none; }
+            .container.left-hover .panel-left, .container.right-hover .panel-right { flex: 1 !important; }
+            .content { opacity: 1; transform: translate(-50%, -50%); width: 85%; }
+            h2 { font-size: 2rem; }
+            p { font-size: 1rem; margin-bottom: 1.8rem; }
+            .cta-button { padding: 10px 24px; }
+            .initial-hint { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="main-container">
+        <div class="panel panel-left" id="panel-left">
+            <canvas id="keywords-canvas" class="visual-bg"></canvas>
+            <div class="content">
+                <h2>文本流光 · 代码溢彩<br><span class="subtitle"> · 智能文本高亮工坊 · </span></h2>
+                <p>为冰冷的字符序列，注入生命的斑斓。在这里，每一个关键词都是一抹独特的颜料，每一次正则匹配都是一次精准的艺术创作。挥动光标，将平淡无奇的文本，瞬间点化为流光溢彩的视觉诗篇。</p>
+                <a href="./colorful-keywords/" class="cta-button">执掌光影</a>
+            </div>
+        </div>
+        <div class="panel panel-right" id="panel-right">
+            <div id="json-canvas-container" class="visual-bg"></div>
+            <div class="content">
+                <h2>结构之森 · 数据之核<br><span class="subtitle"> · 数据结构透视仪 · </span></h2>
+                <p>潜入层层嵌套的数据宇宙，探索由节点与连线构筑的逻辑森林。在这里，一切混沌皆有秩序，每一个数据片段都是星图上的一颗坐标。启动探测器，洞悉信息的本质，解构深邃的数字之美。</p>
+                <a href="./json-inspector/" class="cta-button">洞察结构</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="initial-hint">触碰边界，揭示内在</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.18.0/matter.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Main Interaction Logic ---
+            const container = document.getElementById('main-container');
+            const panelLeft = document.getElementById('panel-left');
+            const panelRight = document.getElementById('panel-right');
+            let isMobile = window.innerWidth <= 768;
+
+            if (!isMobile) {
+                const addInteractionClass = () => !container.classList.contains('interaction-started') && container.classList.add('interaction-started');
+                panelLeft.addEventListener('mouseenter', () => { container.classList.add('left-hover'); addInteractionClass(); });
+                panelLeft.addEventListener('mouseleave', () => container.classList.remove('left-hover'));
+                panelRight.addEventListener('mouseenter', () => { container.classList.add('right-hover'); addInteractionClass(); });
+                panelRight.addEventListener('mouseleave', () => container.classList.remove('right-hover'));
+            }
+            window.addEventListener('resize', () => {
+                const newIsMobile = window.innerWidth <= 768;
+                if (newIsMobile !== isMobile) {
+                    isMobile = newIsMobile;
+                    if (isMobile) container.classList.remove('left-hover', 'right-hover');
+                }
+            });
+
+            // --- Visual 1: Code Singularity (Matter.js) ---
+            const keywordsCanvas = document.getElementById('keywords-canvas');
+            const ctx = keywordsCanvas.getContext('2d');
+            
+            const words = [
+                'code', 'data', 'visual', 'flux', 'node', 'react', 'build', 'style', 'parse',
+                'const', 'let', 'var', 'JSON', 'HTML', '{ }', '[ ]', ';', '=>', ':',
+                'int', 'char', 'return', 'struct', 'void', 'while', 'if', 'else', 'printf',
+                'def', 'import', 'lambda', 'yield', 'class', 'self', 'for', 'in', 'await'
+            ];
+            const keywordColors = ['#ff3b8d', '#f7dd72', '#a0e880', '#50e3c2', '#b87fe8'];
+            const baseColor = 'rgba(224, 224, 224, 0.5)';
+            const FONT_FAMILY = getComputedStyle(document.documentElement).getPropertyValue('--font-mono').trim();
+
+            // --- RADICALLY ENHANCED Physics Parameters ---
+            const FONT_SIZE_MIN = 12;
+            const FONT_SIZE_MAX = 22;
+            const MAX_BODIES = 700; // Drastically increased capacity
+            const SPAWN_INTERVAL = 30;  // Extreme spawn rate
+            const GRAVITY = 0.7;        // Slightly reduced for better stacking feel
+
+            let engine, world;
+            let mouse = { x: null, y: null, radius: 120 };
+            let wordSpawner;
+            
+            function initKeywordsPhysics() {
+                engine = Matter.Engine.create({ enableSleeping: true });
+                world = engine.world;
+                world.gravity.y = GRAVITY;
+
+                setupBounds();
+                if (wordSpawner) clearInterval(wordSpawner);
+                wordSpawner = setInterval(spawnWord, SPAWN_INTERVAL);
+
+                (function render() {
+                    const bodies = Matter.Composite.allBodies(world);
+                    ctx.clearRect(0, 0, keywordsCanvas.width, keywordsCanvas.height);
+
+                    for (let i = 0; i < bodies.length; i++) {
+                        const body = bodies[i];
+                        if (body.isStatic || !body.customData) continue;
+                        
+                        const dist = mouse.x === null ? 1000 : Math.hypot(body.position.x - mouse.x, body.position.y - mouse.y);
+                        const targetColor = (dist < mouse.radius) ? body.customData.highlightColor : baseColor;
+                        
+                        if (body.isSleeping && body.customData.alpha > 0.1) body.customData.alpha -= 0.005; // Slower fade for settled items
+                        if (body.customData.alpha <= 0.1 || body.position.y > keywordsCanvas.height + 100) {
+                            Matter.World.remove(world, body); continue;
+                        }
+                        
+                        ctx.save();
+                        ctx.translate(body.position.x, body.position.y);
+                        ctx.rotate(body.angle);
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.font = `${body.customData.fontSize}px ${FONT_FAMILY}`;
+                        ctx.fillStyle = targetColor;
+                        ctx.globalAlpha = body.customData.alpha;
+                        ctx.fillText(body.customData.word, 0, 0);
+                        ctx.restore();
+                    }
+                    
+                    Matter.Engine.update(engine, 1000 / 60);
+                    requestAnimationFrame(render);
+                })();
+            }
+
+            function spawnWord() {
+                if (Matter.Composite.allBodies(world).length > MAX_BODIES) return;
+
+                const word = words[Math.floor(Math.random() * words.length)];
+                
+                const fontSize = FONT_SIZE_MIN + Math.random() * (FONT_SIZE_MAX - FONT_SIZE_MIN);
+                // --- Physics tuned for accumulation ---
+                const restitution = 0.1 + Math.random() * 0.3; // Very low bounciness
+                const friction = 0.1 + Math.random() * 0.2; // Increased friction
+                const density = 0.001 + (word.length / 10) * 0.002;
+                
+                ctx.font = `${fontSize}px ${FONT_FAMILY}`;
+                const textMetrics = ctx.measureText(word);
+                const width = textMetrics.width;
+                const height = fontSize;
+                const x = Math.random() * (panelLeft.clientWidth * 0.8) + (panelLeft.clientWidth * 0.1);
+                
+                const body = Matter.Bodies.rectangle(x, -30, width + 10, height, {
+                    restitution: restitution,
+                    density: density,
+                    friction: friction,
+                    frictionAir: 0.01,
+                    angle: (Math.random() - 0.5) * 0.5
+                });
+
+                body.customData = {
+                    word: word,
+                    fontSize: fontSize,
+                    highlightColor: keywordColors[Math.floor(Math.random() * keywordColors.length)],
+                    alpha: 1
+                };
+
+                Matter.World.add(world, body);
+            }
+
+            function setupBounds() {
+                if (world) Matter.Composite.clear(world, false, true);
+                const w = panelLeft.clientWidth;
+                const h = panelLeft.clientHeight;
+                const ground = Matter.Bodies.rectangle(w / 2, h, w, 60, { isStatic: true }); // Floor at the very bottom
+                const wallLeft = Matter.Bodies.rectangle(0, h / 2, 1, h, { isStatic: true }); // Thinner walls
+                const wallRight = Matter.Bodies.rectangle(w, h / 2, 1, h, { isStatic: true });
+                Matter.World.add(world, [ground, wallLeft, wallRight]);
+            }
+            
+            function resizeKeywordsCanvas() {
+                const rect = panelLeft.getBoundingClientRect();
+                keywordsCanvas.width = rect.width;
+                keywordsCanvas.height = rect.height;
+                if (engine) setupBounds();
+            }
+
+            panelLeft.addEventListener('mousemove', (event) => {
+                const rect = keywordsCanvas.getBoundingClientRect();
+                mouse.x = event.clientX - rect.left;
+                mouse.y = event.clientY - rect.top;
+            });
+            panelLeft.addEventListener('mouseleave', () => { mouse.x = null; mouse.y = null; });
+            
+            initKeywordsPhysics();
+            resizeKeywordsCanvas();
+            window.addEventListener('resize', resizeKeywordsCanvas);
+
+            // --- Visual 2: JSON Inspector (Unchanged) ---
+            // The code for the right panel remains the same.
+            let scene, camera, renderer, dataCloud;
+            function initJsonVisual(){scene=new THREE.Scene();camera=new THREE.PerspectiveCamera(75,jsonContainer.clientWidth/jsonContainer.clientHeight,.1,1e3);renderer=new THREE.WebGLRenderer({antialias:!0,alpha:!0});renderer.setSize(jsonContainer.clientWidth,jsonContainer.clientHeight);renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));jsonContainer.appendChild(renderer.domElement);dataCloud=new THREE.Group();const e=new THREE.SphereGeometry(.06,16,16),t=new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue("--accent-color-right")),o=new THREE.MeshStandardMaterial({color:t,emissive:t,emissiveIntensity:1.2,metalness:.4,roughness:.5});const n=[];const r=150;for(let a=0;a<r;a++){const l=(Math.random()-.5)*10,c=(Math.random()-.5)*10,d=(Math.random()-.5)*10;n.push(new THREE.Vector3(l,c,d));const s=new THREE.Mesh(e,o);s.position.set(l,c,d);dataCloud.add(s)}const i=new THREE.LineBasicMaterial({color:t,opacity:.15,transparent:!0,blending:THREE.AdditiveBlending});for(let u=0;u<r;u++)for(let m=u+1;m<r;m++){const p=n[u],f=n[m];if(p.distanceTo(f)<1.8){const g=new THREE.BufferGeometry().setFromPoints([p,f]);dataCloud.add(new THREE.Line(g,i))}}scene.add(dataCloud);camera.position.z=7}
+            let mouseX=0,mouseY=0,targetX=0,targetY=0;const windowHalfX=window.innerWidth/2,windowHalfY=window.innerHeight/2;
+            function onDocumentMouseMove(e){mouseX=(e.clientX-windowHalfX)*.1;mouseY=(e.clientY-windowHalfY)*.1}
+            document.addEventListener("mousemove",onDocumentMouseMove);function animateJson(){targetX=mouseX*.001;targetY=mouseY*.001;requestAnimationFrame(animateJson);if(dataCloud){dataCloud.rotation.y+=.0005+targetX;dataCloud.rotation.x+=.0002+targetY}renderer&&renderer.render(scene,camera)}
+            function onWindowResizeJson(){if(camera&&renderer){camera.aspect=jsonContainer.clientWidth/jsonContainer.clientHeight;camera.updateProjectionMatrix();renderer.setSize(jsonContainer.clientWidth,jsonContainer.clientHeight)}}
+            initJsonVisual();animateJson();window.addEventListener("resize",onWindowResizeJson);
+        });
+    </script>
+</body>
+</html>

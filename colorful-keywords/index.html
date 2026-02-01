@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Keyword Highlight + Header · Fluent Edition</title>
+<style>
+  :root {
+    /* Fluent Design System Palette & Properties */
+    --bg: #1f1f1f;
+    --card-bg: rgba(44, 44, 44, 0.75);
+    --card-border: rgba(255, 255, 255, 0.1);
+    --input-bg: rgba(20, 20, 20, 0.6);
+    --input-border: rgba(255, 255, 255, 0.12);
+    --accent-blue: #0078d4;
+    --accent-red: #d13438;
+    --txt: #ffffff;
+    --muted: #e5e5e5;
+
+    /* Fluent Shadows */
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.15);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.25);
+
+    /* Fluent Radii */
+    --radius-md: 12px;
+    --radius-sm: 8px;
+  }
+  html,body {
+    height: 100%;
+    overflow: hidden;
+  }
+  body {
+    margin: 0;
+    font-family: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+    background: radial-gradient(1200px 600px at 20% -10%, #3a3f2b 0, transparent 70%), #1f1f1f;
+    color: var(--txt);
+    display: flex;
+    flex-direction: column;
+  }
+  .container {
+    max-width: 95vw;
+    flex-grow: 1;
+    margin: 24px auto;
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: calc(100% - 48px);
+  }
+  h1 {
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0 0 16px;
+    letter-spacing: .2px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  /* Main 3-column layout */
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 420px 1fr;
+    gap: 16px;
+    flex-grow: 1;
+    height: 100%;
+    overflow: hidden;
+  }
+  .card {
+    background: var(--card-bg);
+    backdrop-filter: blur(28px) saturate(120%);
+    -webkit-backdrop-filter: blur(28px) saturate(120%);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    box-shadow: var(--shadow-sm);
+    transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+  }
+  .card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+  }
+  .column-card {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      box-sizing: border-box;
+  }
+  .central-column .card {
+      overflow-y: auto;
+  }
+
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    margin: 0 0 12px;
+    padding-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    border-bottom: 1px solid var(--card-border);
+  }
+  input[type="text"], textarea, select {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--txt);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 200ms ease-out, box-shadow 200ms ease-out;
+  }
+  input[type="text"]:focus, textarea:focus, select:focus {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 3px rgba(0, 120, 212, .5);
+  }
+  textarea {
+    flex-grow: 1;
+    resize: none;
+    font-family: "Cascadia Code", "Consolas", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-variant-ligatures: none;
+  }
+  .flex { display: flex; gap: 10px; align-items: center; }
+  .btn {
+    background: rgba(255,255,255,.07);
+    color: var(--txt);
+    border: 1px solid var(--input-border);
+    padding: 9px 12px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    line-height: 1;
+    font-weight: 600;
+    transition: all 200ms ease-out;
+  }
+  .btn:hover { background: rgba(255,255,255,.1); }
+  .btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 120, 212, .5); border-color: var(--accent-blue); }
+  .btn.primary { background: var(--accent-blue); border-color: transparent; color: white; width: 100%; justify-content: center; }
+  .btn.primary:hover { background: #1085d6; }
+  .btn svg { width: 16px; height: 16px; flex: 0 0 16px; }
+
+  /* Fancy Add & Clear Buttons */
+  #addRow {
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 8px rgba(0, 120, 212, 0);
+  }
+  #addRow:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 120, 212, .4);
+  }
+  #clearAll {
+    background: transparent;
+    color: var(--accent-red);
+    border-color: rgba(209, 52, 56, 0.5);
+  }
+  #clearAll:hover {
+    background: rgba(209, 52, 56, 0.2);
+    border-color: rgba(209, 52, 56, 0.8);
+    color: #fff;
+  }
+  /* Fancy Delete Button */
+  .btn[data-tooltip="Delete Rule"] {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: transparent;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    justify-content: center;
+    color: var(--muted);
+  }
+  .btn[data-tooltip="Delete Rule"]:hover {
+    background: var(--accent-red);
+    color: white;
+    transform: scale(1.1) rotate(90deg);
+  }
+
+  .grid { display: grid; gap: 10px; }
+  .small { font-size: 12px; color: var(--muted); font-weight: 500; }
+
+  .option-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; gap: 10px; }
+  .option-grid > label { justify-self: start; }
+
+  .krow-layout { display: grid; grid-template-columns: 20px 1fr 40px repeat(4, 32px) 32px; gap: 8px; align-items: center; }
+  .krow { transition: opacity .2s, border-top .2s, border-bottom .2s; }
+  .krow[draggable="true"] { cursor: grab; }
+  .krow.disabled { opacity: 0.5; }
+  .krow.dragging { opacity: 0.4; background: var(--accent-blue); }
+  .krow.drag-over-indicator { border-top: 2px solid var(--accent-blue); }
+  
+  .drag-handle { color: rgba(255,255,255,0.4); display: flex; align-items: center; justify-content: center; height: 100%; font-size: 16px; transition: color 200ms ease-out; }
+  .drag-handle:hover { color: rgba(255,255,255,0.8); }
+
+  .krow input[type="color"] { width: 40px; height: 38px; padding: 0; border: 1px solid var(--input-border); background: var(--input-bg); border-radius: var(--radius-sm); box-sizing: border-box; }
+  
+  /* NEW Checkbox Styling */
+  .fancy-checkbox {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    vertical-align: middle;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .fancy-checkbox input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+    z-index: -1;
+  }
+  .fancy-checkbox .checkbox-ui {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 6px;
+    background: var(--input-bg);
+    border: 1px solid transparent; /* Hidden by gradient initially */
+    transition: background 0.2s ease-out, border-color 0.2s ease-out, box-shadow 0.2s ease-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden; /* For ripple */
+    background-image: linear-gradient(45deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15); /* Faux border */
+  }
+  .fancy-checkbox .checkbox-ui::before { /* Animated checkmark */
+    content: '✓';
+    font-size: 16px;
+    line-height: 1;
+    color: white;
+    transform: scale(0.5) rotate(-45deg);
+    opacity: 0;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s ease-out;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .fancy-checkbox input:checked + .checkbox-ui {
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.5); /* Focus like effect */
+  }
+  .fancy-checkbox input:checked + .checkbox-ui::before {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+
+  /* Ripple effect for checkbox */
+  .fancy-checkbox .checkbox-ui .ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    pointer-events: none;
+    transform: scale(0);
+    animation: ripple-checkbox 0.4s ease-out forwards;
+    opacity: 0;
+    z-index: 1;
+  }
+  @keyframes ripple-checkbox {
+    from { transform: scale(0); opacity: 1; }
+    to { transform: scale(2); opacity: 0; }
+  }
+
+
+  .krow-header { margin-bottom: 8px; }
+  .krow-header .btn { background: transparent; border: 0; padding: 0; margin: 0; font-size: 12px; color: var(--muted); font-weight: 600; justify-content: center; }
+  .krow-header .btn:hover { background: transparent; color: var(--txt); }
+  .krow-header > * { justify-self: center; }
+  .krow-header > :first-child, .krow-header > :nth-child(2) { justify-self: start; }
+  .krow-header .small { padding-top: 2px; }
+
+  /* Fancy Tooltip */
+  [data-tooltip] { position: relative; }
+  [data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    bottom: 120%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--card-bg);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-sm);
+    color: var(--txt);
+    padding: 6px 10px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 10;
+    transition: all 150ms ease-out;
+  }
+  [data-tooltip]:hover::after {
+    visibility: visible;
+    opacity: 1;
+    transform: translateX(-50%) translateY(-4px);
+  }
+  
+  /* Custom Palette Selector */
+  .palette-container { display: flex; align-items: center; gap: 8px; }
+  .custom-select-container { position: relative; flex-grow: 1; }
+  .select-selected { background: var(--input-bg); border: 1px solid var(--input-border); color: var(--txt); border-radius: var(--radius-sm); padding: 4px 8px; font-family: inherit; font-size: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+  .select-selected.select-arrow-active svg { transform: rotate(180deg); }
+  .select-items { position: absolute; background: var(--card-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--card-border); border-radius: var(--radius-sm); top: 105%; left: 0; right: 0; z-index: 99; padding: 4px; max-height: 200px; overflow-y: auto; }
+  .select-hide { display: none; }
+  .select-items div { color: var(--txt); padding: 6px 8px; cursor: pointer; border-radius: 6px; font-size: 12px; transition: background-color 150ms ease-out; }
+  .select-items div:hover { background-color: rgba(255,255,255,0.1); }
+  .palette-preview { display: flex; height: 20px; transition: opacity 150ms ease-out; }
+  .palette-preview-item { width: 16px; height: 16px; border-radius: 4px; }
+  .palette-preview-item + .palette-preview-item { margin-left: 4px; }
+
+
+  .swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+  .swatch { width: 28px; height: 28px; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,.18); cursor: pointer; transition: transform 150ms ease-out; }
+  .swatch:hover { transform: scale(1.1); }
+  
+  .preview-wrap { border: 1px solid var(--card-border); border-radius: var(--radius-md); overflow: hidden; background: #1a1a1a; flex-grow: 1; display: flex; flex-direction: column; }
+  .header { padding: 10px 14px; font-weight: 700; letter-spacing: .2px; flex-shrink: 0; }
+  .content { padding: 14px; white-space: pre-wrap; font-family: "Cascadia Code", "Consolas", ui-monospace; line-height: 1.6; overflow-y: auto; flex-grow: 1; font-variant-ligatures: none; transition: background-color 200ms ease-out; }
+  
+  .hr { height: 1px; border: 0; background: var(--card-border); margin: 16px 0; }
+  .kbd {font-family: "Cascadia Code", "Consolas", ui-monospace; background: var(--input-bg); border:1px solid var(--input-border); padding:2px 6px; border-radius:6px;}
+  .tip {font-size:12px;color: var(--muted); }
+  .danger { background: var(--danger-bg) !important; border: 1px solid var(--danger-border) !important; border-radius: var(--radius-sm); }
+  .krow.danger { padding: 4px; margin: -4px; }
+  .token-span { font-weight: 700; }
+  
+  /* Toast Notification Styles */
+  #toastContainer { position: fixed; top: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+  .toast { background: var(--card-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--card-border); border-radius: var(--radius-sm); box-shadow: var(--shadow-md); padding: 12px 16px; color: var(--txt); font-size: 14px; font-weight: 600; animation: slideIn 0.3s ease-out forwards, fadeOut 0.5s ease-in 2.5s forwards; }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+  @keyframes fadeOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(100%); } }
+</style>
+</head>
+<body>
+  <div id="toastContainer"></div>
+  <div class="container">
+    <h1>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l2.4 4.8L20 9l-4 4 .9 5-4.9-2.6L7 18l1-5-4-4 5.6-1.2L12 3z" stroke="#0078d4" stroke-width="1.5" fill="none"/></svg>
+      Keyword Highlighter
+    </h1>
+
+    <div class="row">
+        <div class="input-column">
+            <div class="card column-card">
+              <div class="section-title">Input</div>
+              <textarea id="textInput" placeholder="Paste your text here...">&lt;|start|&gt;user&lt;|message|&gt;If I have 3 apples and buy 5 more, then give away 2, how many do I have?&lt;|end|&gt;
+
+&lt;|start|&gt;assistant&lt;|channel|&gt;analysis&lt;|message|&gt;User starts with 3 apples. Buys 5 more: 3 + 5 = 8. Gives away 2: 8 - 2 = 6. Final count is 6 apples.&lt;|end|&gt;
+
+&lt;|start|&gt;assistant&lt;|channel|&gt;final&lt;|message|&gt;You would have 6 apples.</textarea>
+            </div>
+        </div>
+
+        <div class="central-column">
+            <div class="card column-card">
+              <div class="section-title">Options</div>
+              <div class="grid">
+                <label class="small" for="titleInput">Header Title</label>
+                <input id="titleInput" type="text" placeholder="e.g., OPENAI HARMONY" value="OPENAI HARMONY" />
+                <div class="option-grid">
+                  <label class="small" for="titleBg">Header BG</label>
+                  <label class="small" for="titleFg">Header Text</label>
+                  <label class="small" for="contentBg">Content BG</label>
+                  <input id="titleBg" type="color" value="#0078d4" aria-label="Header background color"/>
+                  <input id="titleFg" type="color" value="#ffffff" aria-label="Header text color"/>
+                  <input id="contentBg" type="color" value="#212121" aria-label="Content background color"/>
+                </div>
+              </div>
+
+              <div class="flex" style="justify-content: space-between; align-items: center; margin-top: 16px;">
+                <div class="section-title" style="margin: 0; border: 0; padding: 0;">Color Palette</div>
+              </div>
+              <div class="palette-container">
+                <div id="customPaletteSelector" class="custom-select-container">
+                  <div class="select-selected">
+                      <span id="selectedPaletteText"></span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style="transition: transform 200ms ease-out;"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                  </div>
+                  <div id="paletteOptions" class="select-items select-hide"></div>
+                </div>
+                <div id="palettePreview" class="palette-preview"></div>
+              </div>
+              <div class="small" style="margin-top: 8px; margin-bottom: 8px;">Click swatch to apply to the last active color field</div>
+              <div class="swatches" id="swatchesContainer">
+                </div>
+
+              <hr class="hr"/>
+
+              <div class="section-title">Keywords & Matching</div>
+              <div class="krow-header krow-layout">
+                  <span></span> <label class="small">Keyword</label>
+                  <label class="small">Color</label>
+                  <button class="btn" id="toggleAllWhole" data-tooltip="Toggle all: Whole word">W</button>
+                  <button class="btn" id="toggleAllCase" data-tooltip="Toggle all: Case sensitive">C</button>
+                  <button class="btn" id="toggleAllRegex" data-tooltip="Toggle all: Regex">R</button>
+                  <button class="btn" id="toggleAllEnabled" data-tooltip="Toggle all: Enabled">E</button>
+                  <span></span>
+              </div>
+              <div class="grid" id="kwGrid"></div>
+              <div class="flex" style="margin-top:12px; justify-content: space-between;">
+                <div class="flex" style="gap:8px;">
+                  <button class="btn" id="addRow" data-tooltip="Add new keyword rule">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                    Add
+                  </button>
+                  <button class="btn" id="clearAll" data-tooltip="Clear all keyword rules">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M9 6v12M15 6v12M6 6l1 14a2 2 0 002 2h6a2 2 0 002-2l1-14" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>
+                    Clear
+                  </button>
+                </div>
+              </div>
+              
+              <hr class="hr"/>
+              <button class="btn primary" id="copyBtn" data-tooltip="Copy final HTML to clipboard">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 9h9a2 2 0 012 2v8a2 2 0 01-2 2H9a2 2 0 01-2-2v-8a2 2 0 012-2z"/><path d="M7 7V5a2 2 0 012-2h8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                Copy HTML
+              </button>
+              <div id="copied" class="small" style="margin-top:8px; display:none; text-align: center;">Copied to clipboard ✅</div>
+            </div>
+        </div>
+
+        <div class="preview-column">
+            <div class="card column-card">
+              <div class="section-title">Preview</div>
+              <div class="preview-wrap">
+                <div id="previewHeader" class="header">OPENAI HARMONY</div>
+                <div id="preview" class="content"></div>
+              </div>
+              <span class="tip" style="margin-top: 12px; flex-shrink: 0;">Note: Your Markdown renderer must allow inline HTML.</span>
+            </div>
+        </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  // --- DOM Elements ---
+  const kwGrid = document.getElementById('kwGrid');
+  const addRowBtn = document.getElementById('addRow');
+  const clearAllBtn = document.getElementById('clearAll');
+  const titleInput = document.getElementById('titleInput');
+  const titleBg = document.getElementById('titleBg');
+  const titleFg = document.getElementById('titleFg');
+  const contentBg = document.getElementById('contentBg');
+  const textInput = document.getElementById('textInput');
+  const preview = document.getElementById('preview');
+  const previewHeader = document.getElementById('previewHeader');
+  const copyBtn = document.getElementById('copyBtn');
+  const copied = document.getElementById('copied');
+  const swatchesContainer = document.getElementById('swatchesContainer');
+
+  // Custom Palette Selector Elements
+  const customPaletteSelector = document.getElementById('customPaletteSelector');
+  const selectedPaletteText = document.getElementById('selectedPaletteText');
+  const paletteOptions = document.getElementById('paletteOptions');
+  const palettePreview = document.getElementById('palettePreview');
+  
+  // --- State ---
+  let lastActiveColorInput = null;
+
+  const colorPresets = {
+    'Preset 1': ['#042940', '#005C53', '#9FC131', '#DBF227', '#D6D58E'],
+    'Preset 2': ['#265C4B', '#146551', '#007566', '#589A8D', '#8FC1B5'],
+    'Preset 3': ['#012E40', '#024959', '#026773', '#3CA6A6', '#F2E3D5'],
+    'Preset 4': ['#267365', '#F2CB05', '#F29F05', '#F28705', '#F23030'],
+    'Preset 5': ['#012E40', '#025159', '#038C8C', '#03A696', '#F28705'],
+    'Preset 6': ['#014040', '#02735E', '#03A678', '#F27405', '#731702']
+  };
+
+  // --- Functions ---
+
+  function createRow(word = '', color = null, isRegex = false, whole = false, cs = true, enabled = true) {
+    // If no color is provided, pick a random one from the current swatches
+    if (color === null) {
+        const swatches = swatchesContainer.querySelectorAll('.swatch');
+        const currentPaletteColors = Array.from(swatches).map(swatch => swatch.dataset.color);
+        if (currentPaletteColors.length > 0) {
+            const randomIndex = Math.floor(Math.random() * currentPaletteColors.length);
+            color = currentPaletteColors[randomIndex];
+        } else {
+            color = '#d83b01'; // Fallback default if no swatches are available
+        }
+    }
+
+    const row = document.createElement('div');
+    row.className = 'krow krow-layout';
+    row.draggable = true;
+    if (!enabled) row.classList.add('disabled');
+    row.innerHTML = `
+      <div class="drag-handle">⠿</div>
+      <input type="text" placeholder="Keyword / Regex" value="${word.replace(/"/g,'&quot;')}">
+      <input type="color" value="${color}">
+      <label class="fancy-checkbox" data-tooltip="Whole word"><input type="checkbox" class="wholeToggle"${whole?' checked':''}><span class="checkbox-ui"></span></label>
+      <label class="fancy-checkbox" data-tooltip="Case sensitive"><input type="checkbox" class="caseToggle"${cs?' checked':''}><span class="checkbox-ui"></span></label>
+      <label class="fancy-checkbox" data-tooltip="Regex"><input type="checkbox" class="regexToggle"${isRegex?' checked':''}><span class="checkbox-ui"></span></label>
+      <label class="fancy-checkbox" data-tooltip="Enable/Disable rule"><input type="checkbox" class="enableToggle"${enabled?' checked':''}><span class="checkbox-ui"></span></label>
+      <button class="btn" data-tooltip="Delete Rule">✕</button>
+    `;
+    const [, colorInput] = row.children;
+    row.addEventListener('input', update);
+    row.querySelector('.enableToggle').parentElement.addEventListener('change', (e) => {
+        row.classList.toggle('disabled', !e.target.checked);
+        update();
+    });
+    row.querySelector('.btn[data-tooltip="Delete Rule"]').addEventListener('click', ()=>{ row.remove(); update(); });
+    row.addEventListener('click', (e) => {
+        if (!e.target.closest('button')) {
+            lastActiveColorInput = colorInput;
+        }
+    });
+
+    // Add ripple effect for fancy-checkbox
+    row.querySelectorAll('.fancy-checkbox .checkbox-ui').forEach(ui => {
+        ui.addEventListener('click', function(e) {
+            const ripple = document.createElement('span');
+            ripple.classList.add('ripple');
+            this.appendChild(ripple);
+
+            const size = Math.max(this.offsetWidth, this.offsetHeight);
+            const x = e.offsetX - size / 2;
+            const y = e.offsetY - size / 2;
+            
+            ripple.style.width = ripple.style.height = `${size}px`;
+            ripple.style.left = `${x}px`;
+            ripple.style.top = `${y}px`;
+
+            ripple.addEventListener('animationend', () => ripple.remove());
+        });
+    });
+
+    row.addEventListener('dragstart', () => { setTimeout(() => row.classList.add('dragging'), 0); });
+    row.addEventListener('dragend', () => { row.classList.remove('dragging'); });
+
+    kwGrid.appendChild(row);
+  }
+
+  function escapeHtml(str){
+    return str ? str.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])) : '';
+  }
+
+  function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function buildHighlightedHtml(raw){
+    const rowEls = Array.from(kwGrid.children);
+    let allMatches = [];
+    rowEls.forEach(r => {
+      const rule = {
+        word: r.children[1].value, color: r.children[2].value,
+        whole: r.children[3].querySelector('input').checked, cs: r.children[4].querySelector('input').checked,
+        isRegex: r.children[5].querySelector('input').checked, enabled: r.children[6].querySelector('input').checked,
+        rowEl: r
+      };
+      rule.rowEl.classList.remove('danger'); rule.rowEl.removeAttribute('title');
+      if (!rule.enabled || !rule.word) return;
+      let pattern = rule.isRegex ? rule.word : escapeRegExp(rule.word);
+      if (rule.whole && !rule.isRegex) { pattern = `\\b${pattern}\\b`; }
+      const flags = 'g' + (rule.cs ? '' : 'i');
+      try {
+        const regex = new RegExp(pattern, flags); let match;
+        while ((match = regex.exec(raw)) !== null) {
+          if (match[0].length === 0) continue;
+          allMatches.push({ start: match.index, end: match.index + match[0].length, rule: rule });
+        }
+      } catch(e) {
+        rule.rowEl.classList.add('danger'); rule.rowEl.title = 'Invalid regex: ' + e.message;
+      }
+    });
+
+    allMatches.sort((a, b) => {
+      if (a.start !== b.start) return a.start - b.start;
+      return (b.end - b.start) - (a.end - a.start);
+    });
+
+    const finalMatches = []; let lastEnd = -1;
+    for (const match of allMatches) {
+      if (match.start >= lastEnd) {
+        finalMatches.push(match); lastEnd = match.end;
+      }
+    }
+
+    let html = ''; let lastIndex = 0;
+    finalMatches.forEach(match => {
+      html += escapeHtml(raw.substring(lastIndex, match.start));
+      html += `<span class="token-span" style="color:${match.rule.color}">${escapeHtml(raw.substring(match.start, match.end))}</span>`;
+      lastIndex = match.end;
+    });
+    html += escapeHtml(raw.substring(lastIndex));
+    return html;
+  }
+
+  function render(){
+    previewHeader.textContent = titleInput.value || 'Header';
+    previewHeader.style.background = titleBg.value;
+    previewHeader.style.color = titleFg.value;
+    preview.style.background = contentBg.value;
+    const raw = textInput.value || '';
+    const html = buildHighlightedHtml(raw);
+    preview.innerHTML = html;
+  }
+  
+  function getContrastingTextColor(hex) {
+    if (!hex) return '#000000';
+    const hexValue = hex.replace('#', '');
+    if (hexValue.length !== 6) return '#000000';
+    const r = parseInt(hexValue.substring(0, 2), 16);
+    const g = parseInt(hexValue.substring(2, 4), 16);
+    const b = parseInt(hexValue.substring(4, 6), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b);
+    return luminance > 149 ? '#000000' : '#ffffff';
+  }
+
+  function exportAsMarkdownHtml(){
+    const title = escapeHtml(titleInput.value || '');
+    const headerBg = titleBg.value;
+    const headerFg = titleFg.value;
+    const contentBodyBg = contentBg.value;
+    const contentBodyFg = getContrastingTextColor(contentBodyBg);
+    const body = buildHighlightedHtml(textInput.value || '').replace(/\n/g, '<br>');
+    return (
+`<div style="font-family:Segoe UI, system-ui, sans-serif; border:1px solid #e1dfdd; border-radius:8px; overflow:hidden;">
+  <div style="background:${headerBg}; color:${headerFg}; padding:8px 12px; font-weight:600;">${title}</div>
+  <div style="padding:12px; background:${contentBodyBg}; color:${contentBodyFg}; white-space:pre-wrap; font-family:Consolas, 'Courier New', monospace; line-height:1.6;">${body}</div>
+</div>`)
+  }
+
+  function showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    document.getElementById('toastContainer').appendChild(toast);
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+  }
+
+  function copyExport() {
+    const html = exportAsMarkdownHtml();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(html).then(() => {
+            copied.style.display = 'block'; setTimeout(() => copied.style.display = 'none', 1600);
+            showToast('Copied to clipboard ✅');
+        }).catch(err => { console.error('Failed to copy using navigator.clipboard:', err); showToast('Copy failed!', 'error'); });
+    } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = html; textArea.style.position = 'fixed'; textArea.style.top = '-9999px'; textArea.style.left = '-9999px';
+        document.body.appendChild(textArea); textArea.focus(); textArea.select();
+        try {
+            if (document.execCommand('copy')) {
+                copied.style.display = 'block'; setTimeout(() => copied.style.display = 'none', 1600);
+                showToast('Copied to clipboard ✅');
+            }
+        } catch (err) { console.error('An error occurred during fallback copy:', err); showToast('Copy failed!', 'error'); }
+        document.body.removeChild(textArea);
+    }
+  }
+  
+  function updateSwatches(colors) {
+    swatchesContainer.innerHTML = '';
+    colors.forEach(color => {
+      const swatch = document.createElement('div');
+      swatch.className = 'swatch';
+      swatch.dataset.color = color;
+      swatch.style.background = color;
+      swatch.title = color.toUpperCase();
+      swatch.addEventListener('click', () => {
+        if (lastActiveColorInput) {
+          lastActiveColorInput.value = color;
+          lastActiveColorInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      });
+      swatchesContainer.appendChild(swatch);
+    });
+  }
+
+  function showPalettePreview(colors) {
+    palettePreview.innerHTML = '';
+    colors.forEach(color => {
+      const item = document.createElement('div');
+      item.className = 'palette-preview-item';
+      item.style.background = color;
+      palettePreview.appendChild(item);
+    });
+  }
+
+  function selectPalette(presetName) {
+    selectedPaletteText.textContent = presetName;
+    const colors = colorPresets[presetName];
+    updateSwatches(colors);
+    paletteOptions.classList.add('select-hide');
+    customPaletteSelector.querySelector('.select-selected').classList.remove('select-arrow-active');
+    saveState();
+  }
+
+  function populatePaletteSelector() {
+    paletteOptions.innerHTML = '';
+    for (const presetName in colorPresets) {
+      const option = document.createElement('div');
+      option.textContent = presetName;
+      option.dataset.value = presetName;
+      
+      option.addEventListener('click', () => { selectPalette(presetName); });
+      option.addEventListener('mouseover', () => { showPalettePreview(colorPresets[presetName]); });
+      
+      paletteOptions.appendChild(option);
+    }
+  }
+  
+  function toggleAll(selector){
+    const boxes = kwGrid.querySelectorAll(selector);
+    if (boxes.length === 0) return;
+    const anyUnchecked = Array.from(boxes).some(b => !b.checked);
+    boxes.forEach(b => {
+        if (b.checked !== anyUnchecked) {
+            b.checked = anyUnchecked;
+            b.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    });
+  }
+
+  function saveState() {
+    const keywordsData = Array.from(kwGrid.children).map(r => ({
+      keyword: r.children[1].value, color: r.children[2].value,
+      whole: r.children[3].querySelector('input').checked, cs: r.children[4].querySelector('input').checked,
+      isRegex: r.children[5].querySelector('input').checked, enabled: r.children[6].querySelector('input').checked
+    }));
+    const state = {
+      mainText: textInput.value, headerTitle: titleInput.value,
+      headerBg: titleBg.value, headerFg: titleFg.value, contentBg: contentBg.value,
+      selectedPalette: selectedPaletteText.textContent, keywords: keywordsData
+    };
+    localStorage.setItem('keywordHighlighterState', JSON.stringify(state));
+  }
+
+  function loadState() {
+    const savedStateJSON = localStorage.getItem('keywordHighlighterState');
+    if (!savedStateJSON) {
+      selectPalette(Object.keys(colorPresets)[0]);
+      createRow('assistant', '#03A678', false, false, true, true);
+      createRow('analysis', '#F27405',  false, false, true, true);
+      return;
+    }
+    const state = JSON.parse(savedStateJSON);
+    textInput.value = state.mainText || '';
+    titleInput.value = state.headerTitle || 'OPENAI HARMONY';
+    titleBg.value = state.headerBg || '#0078d4';
+    titleFg.value = state.headerFg || '#ffffff';
+    contentBg.value = state.contentBg || '#212121';
+    selectPalette(state.selectedPalette || Object.keys(colorPresets)[0]);
+    kwGrid.innerHTML = '';
+    if (state.keywords && Array.isArray(state.keywords)) {
+      state.keywords.forEach(kw => {
+        createRow(kw.keyword, kw.color, kw.isRegex, kw.whole, kw.cs, kw.enabled);
+      });
+    }
+  }
+  
+  function update(){ render(); saveState(); }
+
+  // --- Initialization ---
+  
+  document.querySelectorAll('input, textarea').forEach(el => el.addEventListener('input', update));
+  ['click', 'input'].forEach(evt => {
+      titleBg.addEventListener(evt, () => { lastActiveColorInput = titleBg; });
+      titleFg.addEventListener(evt, () => { lastActiveColorInput = titleFg; });
+      contentBg.addEventListener(evt, () => { lastActiveColorInput = contentBg; });
+  });
+  
+  const toggleButtons = {
+    '#toggleAllWhole': '.wholeToggle', '#toggleAllCase': '.caseToggle',
+    '#toggleAllRegex': '.regexToggle', '#toggleAllEnabled': '.enableToggle'
+  };
+  for(const id in toggleButtons) {
+    document.querySelector(id).addEventListener('click', ()=>toggleAll(toggleButtons[id]));
+  }
+
+  addRowBtn.addEventListener('click', ()=>createRow());
+  clearAllBtn.addEventListener('click', ()=>{ kwGrid.innerHTML=''; update(); });
+  copyBtn.addEventListener('click', copyExport);
+  
+  populatePaletteSelector();
+  customPaletteSelector.querySelector('.select-selected').addEventListener('click', (e) => {
+    e.stopPropagation();
+    paletteOptions.classList.toggle('select-hide');
+    e.currentTarget.classList.toggle('select-arrow-active');
+  });
+  paletteOptions.addEventListener('mouseleave', () => { palettePreview.innerHTML = ''; });
+  
+  window.addEventListener('click', (e) => {
+    if (!customPaletteSelector.contains(e.target)) {
+      paletteOptions.classList.add('select-hide');
+      customPaletteSelector.querySelector('.select-selected').classList.remove('select-arrow-active');
+    }
+  });
+
+  function getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll('.krow:not(.dragging)')];
+    return draggableElements.reduce((closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+      if (offset < 0 && offset > closest.offset) {
+        return { offset: offset, element: child };
+      } else {
+        return closest;
+      }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+  }
+
+  kwGrid.addEventListener('dragover', e => {
+    e.preventDefault();
+    const afterElement = getDragAfterElement(kwGrid, e.clientY);
+    document.querySelectorAll('.drag-over-indicator').forEach(el => el.classList.remove('drag-over-indicator'));
+    if (afterElement) {
+        afterElement.classList.add('drag-over-indicator');
+    }
+  });
+  
+  kwGrid.addEventListener('dragleave', e => {
+    document.querySelectorAll('.drag-over-indicator').forEach(el => el.classList.remove('drag-over-indicator'));
+  });
+
+  kwGrid.addEventListener('drop', e => {
+    e.preventDefault();
+    document.querySelectorAll('.drag-over-indicator').forEach(el => el.classList.remove('drag-over-indicator'));
+    const afterElement = getDragAfterElement(kwGrid, e.clientY);
+    const dragging = document.querySelector('.dragging');
+    if (dragging) {
+      if (afterElement == null) {
+        kwGrid.appendChild(dragging);
+      } else {
+        kwGrid.insertBefore(dragging, afterElement);
+      }
+      update();
+    }
+  });
+  
+  loadState();
+  update();
+  
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,2159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JSON Inspector · Final Version (Refactored)</title>
+<style>
+  .tippy-box[data-theme~='gradient-guide'] {
+    font-weight: 600;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    border-radius: 99px;
+    background: var(--accent-gradient);
+    box-shadow: 0 4px 12px rgba(0, 120, 212, 0.4);
+  }
+
+  /* Style the arrow to match the theme */
+  .tippy-box[data-theme~='gradient-guide'][data-placement^='top'] > .tippy-arrow::before {
+    border-top-color: var(--accent-blue);
+  }
+  .tippy-box[data-theme~='gradient-guide'][data-placement^='bottom'] > .tippy-arrow::before {
+    border-bottom-color: var(--accent-blue);
+  }
+  .tippy-box[data-theme~='gradient-guide'][data-placement^='left'] > .tippy-arrow::before {
+    border-left-color: var(--accent-blue);
+  }
+  .tippy-box[data-theme~='gradient-guide'][data-placement^='right'] > .tippy-arrow::before {
+    border-right-color: var(--accent-blue);
+  }
+
+  /* Style the content area inside the box */
+  .tippy-box[data-theme~='gradient-guide'] > .tippy-content {
+    padding: 6px 14px;
+  }
+
+  /* Refine the animation curve to be more dynamic */
+  .tippy-box[data-animation='shift-away'] {
+    transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  :root {
+    --bg: #181818;
+    --card-bg: rgba(36, 36, 36, 0.8);
+    --card-border: rgba(255, 255, 255, 0.08);
+    --header-bg: rgba(48, 48, 48, 0.8);
+    --input-bg: rgba(20, 20, 20, 0.8);
+    --input-border: rgba(255, 255, 255, 0.1);
+    --separator-color: rgba(255, 255, 255, 0.08);
+    --accent-blue: #0078d4;
+    --accent-blue-faded: rgba(0, 120, 212, 0.4);
+    --accent-gradient: linear-gradient(45deg, var(--accent-blue), #4ea6ff);
+    --success-green: #28a745;
+    --header-border-top: rgba(255, 255, 255, 0.1);
+    --btn-primary-bg: var(--accent-blue);
+    --btn-primary-bg-hover: #1085dd;
+    --txt: #e1e1e1;
+    --muted: #a0a0a0;
+    --danger-red: #da3633;
+    --line-color: rgba(255, 255, 255, 0.15);
+    --line-color-highlight: #66c0ff;
+    --key-color: #9cdcfe;
+    --string-color: #ce9178;
+    --number-color: #b5cea8;
+    --boolean-color: #569cd6;
+    --null-color: #808080;
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.25);
+    --radius-md: 10px;
+    --radius-sm: 6px;
+    --icon-btn-bg: rgba(255,255,255,.07);
+    --icon-btn-bg-hover: rgba(255,255,255,.12);
+  }
+
+  html[data-theme='light'] {
+    --bg: #f5f5f5;
+    --card-bg: rgba(255, 255, 255, 0.8);
+    --card-border: rgba(0, 0, 0, 0.08);
+    --header-bg: rgba(240, 240, 240, 0.9);
+    --input-bg: #ffffff;
+    --input-border: rgba(0, 0, 0, 0.12);
+    --separator-color: rgba(0, 0, 0, 0.08);
+    --accent-gradient: linear-gradient(45deg, var(--accent-blue), #005a9e);
+    --success-green: #218838;
+    --header-border-top: rgba(0, 0, 0, 0.1);
+    --btn-primary-bg: var(--accent-blue);
+    --btn-primary-bg-hover: #006cbf;
+    --txt: #1e1e1e;
+    --muted: #606060;
+    --danger-red: #cf222e;
+    --line-color: rgba(0, 0, 0, 0.15);
+    --key-color: #0451a5;
+    --string-color: #a31515;
+    --number-color: #098658;
+    --boolean-color: #0000ff;
+    --null-color: #808080;
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+    --icon-btn-bg: rgba(0,0,0,.05);
+    --icon-btn-bg-hover: rgba(0,0,0,.09);
+  }
+
+  html,body { height: 100%; overflow: hidden; transition: background-color 200ms ease-out, color 200ms ease-out; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--txt);
+    display: flex;
+    flex-direction: column;
+  }
+  .container { max-width: 98vw; flex-grow: 1; margin: 20px auto; padding: 0 16px; display: flex; flex-direction: column; width: 100%; height: calc(100% - 40px); }
+
+  h1 { font-size: 24px; font-weight: 600; margin: 0 0 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-shrink: 0; }
+  h1 .title-group span {
+    background: var(--accent-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  h1 .title-group svg { color: var(--accent-blue); }
+  .title-group { display: flex; align-items: center; gap: 10px; }
+  
+  /* === MODIFIED: .row layout for Split.js === */
+  .row#split-container {
+    display: flex;
+    flex-direction: row;
+    flex-grow: 1;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .card {
+    background: var(--card-bg);
+    backdrop-filter: blur(20px) saturate(120%); -webkit-backdrop-filter: blur(20px) saturate(120%);
+    border: 1px solid var(--card-border); border-radius: var(--radius-md); box-shadow: var(--shadow-md);
+    display: flex; flex-direction: column; height: 100%; box-sizing: border-box; overflow: hidden; position: relative;
+    min-width: 0;
+    transition: padding 300ms ease, border 300ms ease, visibility 300ms ease, box-shadow 200ms ease-out;
+  }
+
+  /* === NEW: Styles for Split.js gutter === */
+  .gutter {
+    background-color: transparent;
+    position: relative;
+    cursor: col-resize;
+  }
+  .gutter.gutter-horizontal::before {
+    content: '';
+    position: absolute;
+    left: calc(50% - 1.5px);
+    top: 5%;
+    height: 90%;
+    width: 3px;
+    background-color: var(--separator-color);
+    transition: all 200ms ease-out;
+  }
+  .gutter.gutter-horizontal:hover::before {
+    width: 6px;
+    left: calc(50% - 3px);
+    background-color: var(--accent-blue);
+  }
+  /* === END NEW === */
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--icon-btn-bg-hover); border-radius: 4px; border: 2px solid transparent; background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover { background-color: var(--accent-blue-faded); }
+  #jsonInput, #treeContainer, #inspectorContent {
+      scrollbar-width: thin; scrollbar-color: var(--icon-btn-bg-hover) transparent;
+  }
+
+  .card-header {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    background: var(--header-bg); padding: 10px 14px; border-bottom: 1px solid var(--card-border);
+    flex-shrink: 0; position: relative;
+  }
+  .card-header::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background-color: var(--header-border-top); transition: background-color 200ms ease-out;
+  }
+  #panel-tree .card-header::before,
+  #panel-inspector .card-header::before { background: var(--accent-gradient); }
+
+  #panel-tree .card-header { position: sticky; top: 0; z-index: 2; }
+
+  .card-title {
+    display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600;
+    color: var(--txt); letter-spacing: .02em;
+  }
+  .card-title svg {
+    width: 18px;
+    height: 18px;
+    stroke-width: 2;
+    color: var(--muted);
+  }
+  .header-controls { display: flex; gap: 12px; align-items: center; }
+  .card-content { padding: 14px; flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  .btn {
+    background: var(--icon-btn-bg); color: var(--txt); border: 1px solid var(--input-border);
+    padding: 4px 12px; border-radius: var(--radius-sm); cursor: pointer; display: inline-flex;
+    align-items: center; justify-content: center; gap: 6px;
+    font-size: 13px; font-weight: 600;
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .btn:hover {
+    background: var(--icon-btn-bg-hover); border-color: rgba(255,255,255,0.2); transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+
+  .btn.btn-primary {
+    background: var(--btn-primary-bg); border-color: transparent; color: white;
+    box-shadow: 0 2px 8px rgba(0, 120, 212, 0.3);
+  }
+  .btn.btn-primary:hover {
+    background: var(--btn-primary-bg-hover); border-color: transparent; transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 120, 212, 0.4);
+  }
+  .btn.btn-sm { padding: 3px 10px; font-size: 12px; }
+  .btn svg { width: 14px; height: 14px; color: var(--muted); transition: color 200ms ease-out; }
+  .btn:hover svg { color: var(--txt); }
+  .btn.btn-primary svg { color: rgba(255,255,255,0.8); }
+  .btn.btn-primary:hover svg { color: white; }
+  .btn:focus-visible, .icon-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-blue-faded); border-color: var(--accent-blue); }
+
+  .icon-btn {
+    background: transparent; color: var(--muted); border: none; padding: 4px; border-radius: var(--radius-sm);
+    cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px;
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .icon-btn:hover { background: var(--icon-btn-bg-hover); color: var(--txt); transform: scale(1.1); }
+  .icon-btn svg { width: 16px; height: 16px; }
+
+  .action-group-container {
+    display: flex;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-sm);
+    padding: 2px;
+    box-shadow: 0 0 0 0px var(--accent-blue-faded);
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .action-group-container:hover {
+    box-shadow: 0 0 8px 2px var(--accent-blue-faded);
+  }
+  .action-group-container .icon-btn {
+    border-radius: 4px;
+    border-left: 1px solid transparent;
+  }
+  .action-group-container .icon-btn:first-child {
+    border-left: none;
+  }
+  .action-group-container .icon-btn:not(:first-child) {
+      border-left: 1px solid var(--separator-color);
+  }
+  .action-group-container .icon-btn:hover {
+    background: var(--accent-blue-faded);
+    transform: translateY(-2px) scale(1.05);
+  }
+
+  #clearBtn.icon-btn:hover {
+    color: var(--danger-red);
+    transform: scale(1.1) rotate(180deg);
+  }
+  #clearBtn.icon-btn:hover svg {
+    color: var(--danger-red);
+  }
+  
+  .search-toolbar {
+    display: flex;
+    align-items: center;
+    background-color: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-sm);
+    transition: all 200ms ease-out;
+  }
+  .search-toolbar:focus-within {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 3px var(--accent-blue-faded);
+  }
+
+  .search-wrapper { position: relative; display: flex; align-items: center; }
+  .search-wrapper svg {
+    position: absolute; top: 50%; left: 10px; transform: translateY(-50%);
+    color: var(--muted); width: 15px; height: 15px; pointer-events: none; transition: color 200ms ease-out;
+  }
+  
+  #searchInput {
+    width: 180px; 
+    background: transparent; 
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+    color: var(--txt);
+    padding: 6px 28px 6px 32px;
+    font-size: 13px; outline: none; box-sizing: border-box; 
+    transition: width 200ms ease-out;
+  }
+
+  #searchInput:focus {
+    border-color: transparent;
+    box-shadow: none;
+    background: transparent;
+  }
+  #searchInput:focus ~ svg { color: var(--accent-blue); }
+
+  #searchClearBtn {
+    position: absolute;
+    right: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 22px;
+    height: 22px;
+    display: none;
+  }
+  #searchClearBtn svg { width: 12px; height: 12px; }
+
+  #searchResults { 
+    font-size: 12px; 
+    color: var(--muted); 
+    white-space: nowrap; 
+    padding: 0 8px;
+    border-left: 1px solid var(--input-border);
+  }
+  
+  .search-nav { display: flex; }
+  .search-nav .icon-btn {
+    border: none;
+    border-radius: 0;
+    border-left: 1px solid var(--input-border);
+    width: 30px;
+    height: 30px;
+  }
+  .search-nav .icon-btn:hover {
+    background: var(--icon-btn-bg-hover);
+    transform: none;
+  }
+  .search-nav .icon-btn:last-child {
+    border-top-right-radius: var(--radius-sm);
+    border-bottom-right-radius: var(--radius-sm);
+  }
+  .search-nav .icon-btn:disabled { 
+    opacity: 0.4; 
+    cursor: not-allowed; 
+    background: transparent; 
+  }
+
+  .action-group { display: flex; gap: 8px; }
+  
+  .input-wrapper {
+      flex-grow: 1;
+      border: 1px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      display: flex;
+      flex-direction: column;
+  }
+  .input-wrapper.is-hinted {
+    animation: 0.5s ease-in-out 0s 1 shake-horizontal, 0.8s ease-in-out 0s 1 flash-blue-border;
+  }
+
+  @keyframes shake-horizontal {
+    25% { transform: translateX(5px); }
+    50% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+  @keyframes flash-blue-border {
+    25%, 75% { box-shadow: 0 0 8px 2px var(--accent-blue-faded); }
+    50% { box-shadow: 0 0 8px 2px transparent; }
+  }
+
+  #jsonInput {
+    flex-grow: 1; resize: none; width: 100%; background: transparent; border: none; color: var(--txt);
+    padding: 10px; box-sizing: border-box;
+    font-size: 14px; line-height: 1.6;
+    border-radius: var(--radius-sm);
+  }
+  
+  #inputInfoBar {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    padding: 6px 12px;
+    font-size: 12px;
+    background-color: var(--accent-blue-faded);
+    color: var(--txt);
+    border-top: 1px solid var(--card-border);
+    flex-shrink: 0;
+  }
+  #inputInfoBar span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  #inputInfoBar span#dragDropHint {
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 2px 4px;
+    transition: background-color 150ms ease-out;
+  }
+  #inputInfoBar span#dragDropHint:hover {
+    background-color: rgba(255,255,255,0.1);
+  }
+  #inputInfoBar svg {
+    width: 14px;
+    height: 14px;
+    color: var(--txt);
+  }
+
+  #statusBar { font-size: 12px; margin-top: 8px; padding: 4px 0; flex-shrink: 0; text-align: right; }
+  .status-ok { color: #4CAF50; }
+  .status-error { color: #F44336; }
+
+  #treeContainer {
+    flex-grow: 1; overflow: auto; font-size: 14px; padding-right: 10px;
+    background-image:
+      repeating-linear-gradient(to bottom, var(--input-bg) 0 3px, transparent 3px 6px),
+      repeating-linear-gradient(to right, var(--line-color) 0 1px, transparent 1px 28px);
+    background-position: 0 0, 12px 0; background-attachment: local, local; background-origin: content-box;
+  }
+  #treeRootWrapper { position: relative; width: fit-content; min-width: 100%; }
+
+  .tree-node {
+    position: relative; white-space: nowrap; cursor: pointer; border-radius: 4px;
+    width: fit-content; min-width: 100%; box-sizing: border-box;
+    transition: opacity 200ms ease-out;
+  }
+  .tree-node.dimmed { opacity: 0.5; }
+  .tree-node.dimmed:hover { opacity: 1; }
+  .search-match { background-color: #ffc107; color: #181818; border-radius: 2px; }
+
+  .content-wrapper { padding: 3px 6px; border-radius: 4px; transition: background-color 150ms ease-out; display: flex; align-items: center; }
+  .tree-node:hover > .content-wrapper { background-color: var(--icon-btn-bg-hover); }
+  .tree-node.selected > .content-wrapper { background-color: var(--accent-blue-faded); }
+  .tree-node.path-highlight > .content-wrapper, .tree-node.pulse-path > .content-wrapper { background-color: var(--icon-btn-bg-hover); }
+  
+  .node-expander {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    margin-right: 4px;
+    width: 16px;
+    height: 16px;
+    transition: transform 150ms ease-out;
+  }
+  .node-expander svg {
+      width: 16px;
+      height: 16px;
+      stroke-width: 2.5;
+  }
+
+  .node-expander.collapsed { transform: rotate(-90deg); }
+  .node-expander.hidden { visibility: hidden; }
+  .node-key { color: var(--key-color); }
+  .node-key::after { content: ':'; margin-right: 8px; }
+  .node-value-string { color: var(--string-color); }
+  .node-value-number { color: var(--number-color); }
+  .node-value-boolean { color: var(--boolean-color); font-weight: bold; }
+  .node-value-null { color: var(--null-color); font-style: italic; }
+  .node-summary { color: var(--muted); font-style: italic; margin-left: 8px; }
+  .nested-nodes { display: block; padding-left: 28px; position: relative; }
+  .nested-nodes::before {
+      content: ''; position: absolute; left: 12px; top: 0; bottom: 0; width: 1px; background-color: transparent;
+  }
+  .tree-node.path-highlight > .nested-nodes::before, .tree-node.pulse-path > .nested-nodes::before, .tree-node:has(.selected) > .nested-nodes::before {
+      background-color: var(--line-color-highlight); animation: pulse-blue 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  .nested-nodes.collapsed { display: none; }
+
+  .inspector-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--input-border);
+  }
+
+  #inspectorPath {
+    font-size: 13px; color: var(--txt); padding: 6px 10px;
+    background: var(--input-bg); border-radius: var(--radius-sm); word-break: break-all; flex-grow: 1;
+    border: 1px solid var(--input-border);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+    min-width: 0;
+    transition: all 150ms ease-out;
+    min-height: 19px;
+    display: flex;
+    align-items: center;
+  }
+  #inspectorPath.path-updated { animation: flash-highlight 600ms ease-out; }
+  @keyframes flash-highlight {
+    0% { background-color: var(--accent-blue-faded); box-shadow: 0 0 8px var(--accent-blue-faded), inset 0 1px 3px rgba(0,0,0,0.2); }
+    100% { background-color: var(--input-bg); box-shadow: inset 0 1px 3px rgba(0,0,0,0.2); }
+  }
+
+  #inspectorMeta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--input-border);
+  }
+
+  .meta-pill {
+    background-color: var(--icon-btn-bg); border: 1px solid transparent; padding: 4px 10px;
+    border-radius: 12px; font-size: 12px; display: flex; align-items: center;
+  }
+  .meta-pill::before {
+      content: ''; display: block; width: 6px; height: 6px;
+      border-radius: 50%; background-color: var(--accent-blue);
+      margin-right: 8px;
+  }
+  .meta-pill .key { color: var(--muted); margin-right: 6px; }
+  .meta-pill .value { font-weight: 600; color: var(--txt); }
+  
+  .meta-pill.placeholder {
+    width: 100%;
+    color: var(--muted);
+    font-style: italic;
+    background-color: transparent;
+  }
+  .meta-pill.placeholder::before { display: none; }
+
+  .tabs {
+    display: inline-flex;
+    background-color: var(--icon-btn-bg);
+    border-radius: var(--radius-sm);
+    padding: 2px;
+    margin-top: 12px;
+  }
+  .tab { padding: 4px 12px; background: none; border: none; border-radius: 4px; cursor: pointer; color: var(--muted); font-weight: 600; transition: all 150ms ease-out; }
+  .tab.active {
+    color: var(--txt);
+    background-color: var(--accent-blue-faded);
+    box-shadow: 0 1px 4px rgba(0,120,212,0.3);
+  }
+
+  #inspectorContent {
+    flex-grow: 1; overflow: auto; background: var(--input-bg);
+    border-radius: var(--radius-sm); border: 1px solid var(--input-border);
+    padding: 12px; white-space: pre-wrap; word-break: break-all; font-size: 14px;
+    line-height: 1.6;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.15);
+    transition: box-shadow 200ms ease-out, border-color 200ms ease-out;
+    margin-top: 12px;
+  }
+  #inspectorContent.content-updated {
+    animation: flash-content-border 700ms ease-out;
+  }
+  @keyframes flash-content-border {
+    0% { border-color: var(--accent-blue); box-shadow: inset 0 2px 4px rgba(0,0,0,0.15), 0 0 8px var(--accent-blue-faded); }
+    100% { border-color: var(--input-border); box-shadow: inset 0 2px 4px rgba(0,0,0,0.15); }
+  }
+
+  .context-menu {
+    position: fixed; z-index: 1000; display: none; background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: var(--radius-sm); box-shadow: var(--shadow-md); padding: 6px; min-width: 150px;
+  }
+  .context-menu-item {
+    padding: 6px 12px; border-radius: 4px; cursor: pointer;
+    display: flex; align-items: center; gap: 8px; font-size: 13px;
+  }
+  .context-menu-item:hover { background-color: var(--accent-blue-faded); }
+
+  @keyframes pulse-blue { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .dropdown { position: relative; }
+  .dropdown-menu {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin-top: 6px;
+    min-width: 200px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-md);
+    padding: 6px;
+    z-index: 10;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: opacity 150ms ease-out, transform 150ms ease-out, visibility 150ms;
+  }
+  .dropdown.open .dropdown-menu {
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .dropdown-item {
+    padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px;
+    display: flex; align-items: center;
+    transition: all 150ms ease-out;
+  }
+  .dropdown-item:hover { background: var(--accent-blue-faded); }
+  
+  .dropdown-item svg,
+  .context-menu-item svg {
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+    color: var(--muted);
+    flex-shrink: 0;
+    stroke-width: 2;
+    pointer-events: none;
+  }
+  .dropdown-item:hover svg,
+  .context-menu-item:hover svg {
+    color: var(--txt);
+  }
+  
+  #toastContainer {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 10000;
+  }
+  .toast {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    color: var(--txt);
+    padding: 10px 16px;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-md);
+    font-size: 14px;
+    font-weight: 600;
+    border-left: 4px solid;
+    animation: slide-in-down 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  .toast.toast-success { border-left-color: var(--success-green); }
+  .toast.toast-info { border-left-color: var(--accent-blue); }
+  .toast svg { width: 18px; height: 18px; flex-shrink: 0; }
+  .toast.toast-success svg { color: var(--success-green); }
+  .toast.toast-info svg { color: var(--accent-blue); }
+
+  @keyframes slide-in-down {
+    from {
+      opacity: 0;
+      transform: translateY(-20px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  @keyframes slide-out-right {
+    to {
+      opacity: 0;
+      transform: translateX(100%) scale(0.95);
+    }
+  }
+  
+  #dragOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 200ms ease-out, visibility 200ms ease-out;
+    pointer-events: none;
+  }
+  body.is-dragging-over #dragOverlay {
+    opacity: 1;
+    visibility: visible;
+  }
+  .drag-overlay-content {
+    color: white;
+    text-align: center;
+    font-size: 24px;
+    font-weight: 600;
+  }
+  .drag-overlay-content svg {
+    margin-bottom: 16px;
+  }
+  #jsonInputCard.is-drag-target {
+    border: 2px dashed var(--accent-blue);
+    box-shadow: 0 0 12px var(--accent-blue-faded);
+  }
+
+  @media (max-width: 1024px) { .row { grid-template-columns: minmax(200px, 1fr) 12px 1fr; } }
+  @media (max-width: 720px) { .row { grid-template-columns: 1fr; } .row > .resizer { display: none; } }
+
+  #jsonInput, #treeContainer, #inspectorContent, #inspectorPath {
+    font-family: "Fira Code", "Cascadia Code", "Consolas", monospace;
+  }
+  
+  /* Hide the native browser clear button on the search input */
+  #searchInput::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    display: none;
+  }
+
+  /* === NEW: SweetAlert2 Custom Styles === */
+  .custom-swal-popup {
+      background: var(--card-bg) !important;
+      color: var(--txt) !important;
+      border-radius: var(--radius-md) !important;
+      border: 1px solid var(--card-border) !important;
+  }
+  .custom-swal-popup .swal2-title {
+      color: var(--txt) !important;
+  }
+  .custom-swal-popup .swal2-html-container {
+      color: var(--muted) !important;
+  }
+  .custom-swal-popup .swal2-input {
+      background: var(--input-bg) !important;
+      color: var(--txt) !important;
+      border: 1px solid var(--input-border) !important;
+  }
+  .custom-swal-popup .swal2-input:focus {
+      border-color: var(--accent-blue) !important;
+      box-shadow: 0 0 0 3px var(--accent-blue-faded) !important;
+  }
+  .custom-swal-popup #swal-status-text {
+      margin-top: 1em;
+      font-size: 14px;
+      color: var(--muted);
+      min-height: 1.2em;
+      transition: color 200ms ease-out;
+  }
+  /* === END NEW === */
+
+  /* === NEW: Dropdown Item Highlighting === */
+  .dropdown-item.highlight-featured {
+    background: linear-gradient(45deg, #2dd4bf, #a78bfa);
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(107, 114, 128, 0.4);
+    transition: all 200ms ease-out;
+  }
+  .dropdown-item.highlight-featured svg {
+    color: white;
+    filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.7));
+  }
+  .dropdown-item.highlight-featured:hover {
+    background: linear-gradient(45deg, #2dd4bf, #a78bfa); /* 覆盖默认的hover背景 */
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(107, 114, 128, 0.5);
+  }
+  .dropdown-item.highlight-featured:hover svg {
+      color: white; /* 覆盖默认的hover颜色 */
+  }
+
+  /* === NEW: Dropdown Item De-emphasis with Whitespace Separator === */
+  .dropdown-item.dropdown-item-separated {
+      margin-top: 6px;
+      opacity: 0.7;
+      transition: opacity 200ms ease-out;
+  }
+  .dropdown-item.dropdown-item-separated:hover {
+      opacity: 1;
+  }
+
+  /* === NEW: Top Right Controls Wrapper === */
+  .top-right-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+  }
+  #updatesBtn {
+      position: relative; /* 为通知红点定位 */
+  }
+
+  /* === NEW: Notification Dot Style === */
+  .notification-dot {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 8px;
+      height: 8px;
+      background-color: #f44336;
+      border-radius: 50%;
+      border: 1.5px solid var(--card-bg);
+      box-shadow: 0 0 0 2px rgba(244, 67, 54, 0.5);
+      animation: pulse-red 2s infinite;
+  }
+  @keyframes pulse-red {
+      0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 5px rgba(244, 67, 54, 0); }
+      100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(244, 67, 54, 0); }
+  }
+
+  /* === NEW: Tippy.js Theme for Popovers === */
+  .tippy-box[data-theme~='popover'] {
+    background-color: var(--card-bg);
+    color: var(--txt);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    text-align: left;
+  }
+  .tippy-box[data-theme~='popover'][data-placement^='top'] > .tippy-arrow::before {
+    border-top-color: var(--card-border);
+  }
+  .tippy-box[data-theme~='popover'][data-placement^='bottom'] > .tippy-arrow::before {
+    border-bottom-color: var(--card-border);
+  }
+
+  /* === NEW: Popover Content Styling === */
+  .update-popover-content h4 {
+      font-size: 15px;
+      margin: 0 0 8px 0;
+      color: var(--txt);
+  }
+  .update-popover-content ul {
+      margin: 0;
+      padding-left: 20px;
+      font-size: 13px;
+      line-height: 1.6;
+  }
+  .update-popover-content a.learn-more {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent-blue);
+      margin-top: 10px;
+      display: inline-block;
+      cursor: pointer;
+      text-decoration: none;
+  }
+  .update-popover-content a.learn-more:hover {
+      text-decoration: underline;
+  }
+
+</style>
+</head>
+<body>
+
+  <div id="contextMenu" class="context-menu" style="display: none;"></div>
+
+  <div class="container">
+    <h1>
+      <div class="title-group">
+        <i data-lucide="file-json-2"></i>
+        <span>JSON Inspector</span>
+      </div>
+      <div class="top-right-controls">
+        <button class="icon-btn" id="updatesBtn" data-tooltip="What's New">
+           <i data-lucide="gift"></i>
+           <div class="notification-dot" style="display: none;"></div>
+        </button>
+        <button class="icon-btn" id="themeToggleBtn" data-tooltip="Toggle Light/Dark Mode"></button>
+      </div>
+    </h1>
+    <div class="row" id="split-container">
+      <div class="card" id="panel-input">
+        <div class="card-header">
+          <div class="card-title">
+            <i data-lucide="chevron-left-right"></i>
+            <span>JSON Input</span>
+          </div>
+          <div class="header-controls">
+            <div class="action-group-container">
+              <div class="dropdown" id="fileDropdown">
+                <button class="icon-btn" id="fileDropdownBtn" data-tooltip="File Actions"></button>
+                <div class="dropdown-menu">
+                  <div class="dropdown-item highlight-featured" data-action="load-url"></div>
+                  <div class="dropdown-item" data-action="load-file"></div>
+                  <div class="dropdown-item" data-action="save"></div>
+                  <div class="dropdown-item dropdown-item-separated" data-action="sample"></div>
+                </div>
+              </div>
+              <div class="dropdown" id="formatDropdown">
+                <button class="icon-btn" id="formatDropdownBtn" data-tooltip="Format Actions"></button>
+                <div class="dropdown-menu">
+                  <div class="dropdown-item" data-action="format"></div>
+                  <div class="dropdown-item" data-action="minify"></div>
+                </div>
+              </div>
+            </div>
+            <button class="icon-btn" id="clearBtn" data-tooltip="Clear Content"></button>
+          </div>
+        </div>
+        <div class="card-content">
+            <div class="input-wrapper">
+              <textarea id="jsonInput" spellcheck="false" placeholder="Paste your JSON here, or drop a file onto this panel..."></textarea>
+              <div id="inputInfoBar">
+                  <span>
+                    <i data-lucide="edit-3"></i>
+                    Paste or Type
+                  </span>
+                  <span id="dragDropHint">
+                    <i data-lucide="upload-cloud"></i>
+                    Drag & Drop File
+                  </span>
+              </div>
+            </div>
+            <div id="statusBar" class="status-ok"></div>
+        </div>
+      </div>
+
+      <div class="card" id="panel-tree">
+        <div class="card-header">
+            <div class="card-title">
+              <i data-lucide="folder-tree"></i>
+              <span>Tree View</span>
+            </div>
+            <div class="header-controls">
+              <div class="search-toolbar">
+                  <div class="search-wrapper" data-tooltip="Search by path, key, or value">
+                      <i data-lucide="search"></i>
+                      <input type="search" id="searchInput" placeholder="Search...">
+                      <button class="icon-btn" id="searchClearBtn" data-tooltip="Clear Search"></button>
+                  </div>
+                  <span id="searchResults"></span>
+                  <div class="search-nav">
+                      <button class="icon-btn" id="searchPrevBtn" data-tooltip="Previous Match">&lt;</button>
+                      <button class="icon-btn" id="searchNextBtn" data-tooltip="Next Match">&gt;</button>
+                  </div>
+              </div>
+              <div class="action-group-container">
+                <button class="icon-btn" id="toggleExpandCollapseBtn" data-state="expanded"></button>
+              </div>
+            </div>
+        </div>
+        <div class="card-content">
+            <div id="treeContainer"><div id="treeRootWrapper"></div></div>
+        </div>
+      </div>
+
+      <div class="card" id="panel-inspector">
+        <div class="card-header">
+          <div class="card-title">
+            <i data-lucide="mouse-pointer-click"></i>
+            <span>Inspector</span>
+          </div>
+        </div>
+        <div class="card-content">
+            <div class="inspector-header">
+              <div id="inspectorPath"></div>
+              <div class="action-group">
+                 <div class="action-group-container">
+                    <button class="icon-btn" id="shareBtn" data-tooltip="Generate Sharable Link"></button>
+                    <div class="dropdown" id="copyDropdown">
+                      <button class="icon-btn" id="copyDropdownBtn" data-tooltip="Copy Actions"></button>
+                      <div class="dropdown-menu" id="copyMenu">
+                        <div class="dropdown-item" data-copy="path"></div>
+                        <div class="dropdown-item" data-copy="value"></div>
+                        <div class="dropdown-item" data-copy="json"></div>
+                        <div class="dropdown-item" data-copy="minjson"></div>
+                      </div>
+                    </div>
+                </div>
+              </div>
+            </div>
+            <div id="inspectorMeta"></div>
+            <div class="tabs">
+                <button class="tab active" data-view="rendered">Rendered</button>
+                <button class="tab" data-view="raw">Raw</button>
+            </div>
+            <pre id="inspectorContent"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastContainer"></div>
+  <div id="dragOverlay">
+    <div class="drag-overlay-content">
+      <i data-lucide="upload-cloud" style="width: 64px; height: 64px;"></i>
+      <span>Drop .json file to load</span>
+    </div>
+  </div>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://unpkg.com/split.js/dist/split.min.js"></script>
+
+<script src="https://unpkg.com/@popperjs/core@2"></script>
+<script src="https://unpkg.com/tippy.js@6"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+(function() {
+  'use strict';
+
+  const sampleJson = { "user_id": 1001, "username": "fluent_dev", "is_active": true, "roles": ["admin", "editor"], "profile": { "name": "Alex Doe", "email": "alex.doe@example.com", "bio": "A developer passionate about UI/UX.\nLoves creating tools that are both functional and beautiful.", "avatar_url": null }, "posts": [ { "id": 1, "title": "Understanding JSON", "tags": ["data", "webdev"] }, { "id": 2, "title": "The Art of Good UI", "tags": ["design", "ux"] } ] };
+  const STORAGE_KEYS = {
+      THEME: 'jsonInspector:theme',
+      INPUT_JSON: 'jsonInspector:input',
+      PANEL_SIZES: 'jsonInspector:panelSizesPct',
+      LAST_SEEN_UPDATE: 'jsonInspector:lastSeenUpdate',
+  };
+
+  const DOMElements = {
+    jsonInput: document.getElementById('jsonInput'),
+    statusBar: document.getElementById('statusBar'),
+    clearBtn: document.getElementById('clearBtn'),
+    treeContainer: document.getElementById('treeContainer'),
+    treeRootWrapper: document.getElementById('treeRootWrapper'),
+    searchInput: document.getElementById('searchInput'),
+    searchClearBtn: document.getElementById('searchClearBtn'),
+    searchResults: document.getElementById('searchResults'),
+    searchPrevBtn: document.getElementById('searchPrevBtn'),
+    searchNextBtn: document.getElementById('searchNextBtn'),
+    toggleExpandCollapseBtn: document.getElementById('toggleExpandCollapseBtn'),
+    inspectorPath: document.getElementById('inspectorPath'),
+    inspectorTabs: document.querySelector('.tabs'),
+    inspectorContent: document.getElementById('inspectorContent'),
+    inspectorMeta: document.getElementById('inspectorMeta'),
+    copyDropdown: document.getElementById('copyDropdown'),
+    copyDropdownBtn: document.getElementById('copyDropdownBtn'),
+    copyMenu: document.getElementById('copyMenu'),
+    themeToggleBtn: document.getElementById('themeToggleBtn'),
+    contextMenu: document.getElementById('contextMenu'),
+    inputWrapper: document.querySelector('.input-wrapper'),
+    formatDropdown: document.getElementById('formatDropdown'),
+    formatDropdownBtn: document.getElementById('formatDropdownBtn'),
+    fileDropdown: document.getElementById('fileDropdown'),
+    fileDropdownBtn: document.getElementById('fileDropdownBtn'),
+    dragOverlay: document.getElementById('dragOverlay'),
+    inputInfoBar: document.getElementById('inputInfoBar'),
+    dragDropHint: document.getElementById('dragDropHint'),
+    shareBtn: document.getElementById('shareBtn'),
+    updatesBtn: document.getElementById('updatesBtn'),
+  };
+
+  let state = {
+    currentJsonData: null,
+    activeInspectorView: 'rendered',
+    inspectorCurrentValue: undefined,
+    lastExpandedState: new Set(),
+    searchResults: [],
+    searchIndex: -1,
+  };
+  
+  function initialize() {
+    lucide.createIcons();
+    
+    tippy('[data-tooltip]', {
+      content(reference) {
+        return reference.getAttribute('data-tooltip');
+      },
+      animation: 'shift-away', 
+      theme: 'gradient-guide', 
+      delay: [150, 0],
+    });
+    
+    setupEventListeners();
+    setupUI();
+    initTheme();
+
+    const savedSizes = localStorage.getItem(STORAGE_KEYS.PANEL_SIZES);
+    const initialSizes = savedSizes ? JSON.parse(savedSizes) : [34, 33, 33];
+
+    Split(['#panel-input', '#panel-tree', '#panel-inspector'], {
+        sizes: initialSizes,
+        minSize: 150,
+        gutterSize: 16,
+        cursor: 'col-resize',
+        onDragEnd: function(sizes) {
+            localStorage.setItem(STORAGE_KEYS.PANEL_SIZES, JSON.stringify(sizes));
+        }
+    });
+
+    const wasLoaded = loadFromURLOrSample();
+    if (!wasLoaded) {
+      renderEmptyInspector();
+    }
+
+    initializeUpdatesFeature();
+  }
+
+  function setupUI() {
+    updateToggleBtn(true);
+    
+    DOMElements.fileDropdownBtn.innerHTML = '<i data-lucide="more-vertical"></i>';
+    DOMElements.formatDropdownBtn.innerHTML = '<i data-lucide="code"></i>';
+    DOMElements.clearBtn.innerHTML = '<i data-lucide="trash-2"></i>';
+    DOMElements.searchClearBtn.innerHTML = '<i data-lucide="x"></i>';
+    DOMElements.copyDropdownBtn.innerHTML = '<i data-lucide="copy"></i>';
+    DOMElements.shareBtn.innerHTML = '<i data-lucide="share-2"></i>';
+
+    // Update this part for icons and text
+    document.querySelector('[data-action="load-url"]').innerHTML = '<i data-lucide="wand-sparkles"></i> Load from URL';
+    document.querySelector('[data-action="load-file"]').innerHTML = '<i data-lucide="folder-open"></i> Load from File';
+    document.querySelector('[data-action="save"]').innerHTML = '<i data-lucide="save"></i> Save as JSON';
+    document.querySelector('[data-action="sample"]').innerHTML = '<i data-lucide="beaker"></i> Load Sample';
+    
+    document.querySelector('[data-action="format"]').innerHTML = '<i data-lucide="align-left"></i> Format JSON';
+    document.querySelector('[data-action="minify"]').innerHTML = '<i data-lucide="arrow-right-left"></i> Minify JSON';
+    
+    document.querySelector('[data-copy="path"]').innerHTML = '<i data-lucide="route"></i> Path';
+    document.querySelector('[data-copy="value"]').innerHTML = '<i data-lucide="link"></i> Value';
+    document.querySelector('[data-copy="json"]').innerHTML = '<i data-lucide="file-json"></i> Formatted JSON';
+    document.querySelector('[data-copy="minjson"]').innerHTML = '<i data-lucide="file-json-2"></i> Minified JSON';
+  }
+
+  function setupHoverDropdown(dropdownElement) {
+    let hideTimeout;
+    const menu = dropdownElement.querySelector('.dropdown-menu');
+    const triggerArea = dropdownElement.querySelector('button');
+    const showMenu = () => {
+        clearTimeout(hideTimeout);
+        dropdownElement.classList.add('open');
+    };
+    const hideMenu = () => {
+        hideTimeout = setTimeout(() => {
+            dropdownElement.classList.remove('open');
+        }, 250);
+    };
+    if (triggerArea && menu) {
+      triggerArea.addEventListener('mouseenter', showMenu);
+      menu.addEventListener('mouseenter', showMenu);
+      triggerArea.addEventListener('mouseleave', hideMenu);
+      menu.addEventListener('mouseleave', hideMenu);
+    }
+  }
+
+  function parseAndRender(jsonString) {
+    if (!jsonString.trim()) {
+      state.currentJsonData = null;
+      DOMElements.statusBar.textContent = '';
+      DOMElements.treeRootWrapper.innerHTML = '';
+      renderEmptyInspector();
+      return;
+    }
+    try {
+      const data = JSON.parse(jsonString);
+      state.currentJsonData = data;
+      DOMElements.statusBar.textContent = 'Valid JSON';
+      DOMElements.statusBar.className = 'status-ok';
+      renderTree(data);
+    } catch (e) {
+      DOMElements.statusBar.textContent = e.message;
+      DOMElements.statusBar.className = 'status-error';
+      DOMElements.treeRootWrapper.innerHTML = '';
+      state.currentJsonData = null;
+      renderEmptyInspector();
+    }
+  }
+  
+  function renderEmptyInspector() {
+    DOMElements.inspectorPath.innerHTML = '&nbsp;';
+    DOMElements.inspectorMeta.innerHTML = `<div class="meta-pill placeholder">Select a node in the tree view to inspect</div>`;
+    DOMElements.inspectorContent.textContent = '';
+    state.inspectorCurrentValue = undefined;
+  }
+
+  function renderTree(data) {
+    DOMElements.treeRootWrapper.innerHTML = '';
+    const rootNode = createNode(data, 'root', 'root');
+    DOMElements.treeRootWrapper.appendChild(rootNode);
+    lucide.createIcons();
+    updateInspector(rootNode);
+    setPersistentPulse(rootNode);
+  }
+
+  function createNode(value, key, path) {
+    const node = document.createElement('div');
+    node.className = 'tree-node';
+    node.dataset.path = path;
+    node.dataset.key = key;
+    node.setAttribute('role', 'treeitem');
+    node.setAttribute('tabindex', '-1');
+
+    const type = getJsonType(value);
+    const isExpandable = type === 'object' || type === 'array';
+
+    const contentWrapper = document.createElement('div');
+    contentWrapper.className = 'content-wrapper';
+
+    const expander = document.createElement('span');
+    expander.className = `node-expander ${isExpandable ? '' : 'hidden'}`;
+    expander.innerHTML = '<i data-lucide="chevron-down"></i>';
+    contentWrapper.appendChild(expander);
+
+    const keySpan = document.createElement('span');
+    keySpan.className = 'node-key';
+    keySpan.textContent = key;
+    contentWrapper.appendChild(keySpan);
+
+    const valueSpan = document.createElement('span');
+    valueSpan.className = `node-value-${type}`;
+    valueSpan.textContent = getValuePreview(value, type);
+    contentWrapper.appendChild(valueSpan);
+
+    node.appendChild(contentWrapper);
+
+    if (isExpandable) {
+      const nestedContainer = document.createElement('div');
+      nestedContainer.className = 'nested-nodes';
+      nestedContainer.setAttribute('role', 'group');
+      node.setAttribute('aria-expanded', 'true');
+      node.appendChild(nestedContainer);
+
+      const entries = Object.entries(value);
+      entries.forEach(([k, v]) => {
+        const childPath = type === 'array' ? `${path}[${k}]` : `${path}.${k}`;
+        const childNode = createNode(v, k, childPath);
+        nestedContainer.appendChild(childNode);
+      });
+    }
+    return node;
+  }
+
+  function updateInspector(node) {
+      if (!node) {
+        renderEmptyInspector();
+        return;
+      }
+      const currentSelected = DOMElements.treeContainer.querySelector('.selected');
+      if (currentSelected) {
+        currentSelected.classList.remove('selected');
+        currentSelected.setAttribute('tabindex', '-1');
+      }
+      node.classList.add('selected');
+      node.setAttribute('tabindex', '0');
+      const path = node.dataset.path;
+      DOMElements.inspectorPath.textContent = path;
+      DOMElements.inspectorPath.classList.remove('path-updated');
+      void DOMElements.inspectorPath.offsetWidth;
+      DOMElements.inspectorPath.classList.add('path-updated');
+      state.inspectorCurrentValue = getValueFromPath(path);
+      const type = getJsonType(state.inspectorCurrentValue);
+      DOMElements.inspectorContent.textContent = state.activeInspectorView === 'raw'
+        ? JSON.stringify(state.inspectorCurrentValue, null, 2)
+        : renderValue(state.inspectorCurrentValue, type);
+      DOMElements.inspectorContent.classList.remove('content-updated');
+      void DOMElements.inspectorContent.offsetWidth;
+      DOMElements.inspectorContent.classList.add('content-updated');
+      let metaHtml = `<div class="meta-pill"><span class="key">Type</span><span class="value">${type}</span></div>`;
+      if (type === 'string') metaHtml += `<div class="meta-pill"><span class="key">Length</span><span class="value">${state.inspectorCurrentValue.length}</span></div>`;
+      if (type === 'array') metaHtml += `<div class="meta-pill"><span class="key">Items</span><span class="value">${state.inspectorCurrentValue.length}</span></div>`;
+      if (type === 'object') metaHtml += `<div class="meta-pill"><span class="key">Keys</span><span class="value">${Object.keys(state.inspectorCurrentValue).length}</span></div>`;
+      DOMElements.inspectorMeta.innerHTML = metaHtml;
+  }
+
+  function revealNode(node) {
+    if (!node) return;
+    let current = node.parentElement;
+    while (current && current !== DOMElements.treeContainer) {
+        if (current.classList.contains('nested-nodes') && current.classList.contains('collapsed')) {
+            const parentNode = current.parentElement;
+            if (parentNode) {
+              const expander = parentNode.querySelector(':scope > .content-wrapper > .node-expander');
+              const nested = parentNode.querySelector(':scope > .nested-nodes');
+              if (expander && nested) {
+                nested.classList.remove('collapsed');
+                expander.classList.remove('collapsed');
+                parentNode.setAttribute('aria-expanded', 'true');
+              }
+            }
+        }
+        current = current.parentElement;
+    }
+    updateInspector(node);
+    node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function triggerFileSelect() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.onchange = e => {
+        const file = e.target.files[0];
+        if (file) {
+            handleFileDrop({ dataTransfer: { files: [file] } });
+        }
+    };
+    input.click();
+  }
+
+  function getJsonType(value) {
+    if (value === null) return 'null';
+    if (Array.isArray(value)) return 'array';
+    return typeof value;
+  }
+
+  function getValuePreview(value, type) {
+    if (type === 'string') {
+        const processedValue = value.replace(/\n/g, '\\n').replace(/\r/g, '\\r');
+        return `"${processedValue.substring(0, 50)}${processedValue.length > 50 ? '...' : ''}"`;
+    }
+    if (type === 'object') return `{ ${Object.keys(value).length} keys }`;
+    if (type === 'array') return `[ ${value.length} items ]`;
+    return String(value);
+  }
+
+  function renderValue(value, type) {
+      if (type === 'string') return value;
+      if (value === null) return 'null';
+      if (type === 'object' || type === 'array') return JSON.stringify(value, null, 2);
+      return String(value);
+  }
+
+  function getValueFromPath(path) {
+    if (path === 'root') return state.currentJsonData;
+    let value = state.currentJsonData;
+    const pathParts = path.replace(/^root\./, '').match(/(?:[^\.\[\]]+|\[\d+\])/g);
+    if (!pathParts) return undefined;
+
+    try {
+        for (const part of pathParts) {
+            value = part.startsWith('[') ? value[parseInt(part.slice(1, -1))] : value[part];
+        }
+    } catch(e) { value = undefined; }
+    return value;
+  }
+
+  function copyToClipboard(text, successMessage) {
+    // 优先使用现代的、异步的 Clipboard API (仅在安全上下文中可用)
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast(successMessage, 'success');
+      }).catch(err => {
+        console.error('Async copy failed:', err);
+        showToast('Copy failed!', 'info');
+      });
+    } else {
+      // 后备方案：使用传统的 document.execCommand('copy')
+      // 适用于非安全上下文 (如 file://) 或旧版浏览器
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+
+      // 使 textarea 在视口外且不可见
+      textArea.style.position = 'fixed';
+      textArea.style.top = '-9999px';
+      textArea.style.left = '-9999px';
+
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
+      try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+          showToast(successMessage, 'success');
+        } else {
+          showToast('Copy failed!', 'info');
+        }
+      } catch (err) {
+        console.error('Fallback copy failed:', err);
+        showToast('Copy failed!', 'info');
+      }
+
+      document.body.removeChild(textArea);
+    }
+  }
+
+  function showToast(message, type = 'info') {
+    const toastContainer = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    const iconName = type === 'success' ? 'check-circle-2' : 'info';
+    toast.innerHTML = `<i data-lucide="${iconName}"></i><span>${message}</span>`;
+    toastContainer.appendChild(toast);
+    lucide.createIcons();
+    setTimeout(() => {
+        toast.style.animation = 'slide-out-right 0.3s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards';
+        toast.addEventListener('animationend', () => toast.remove());
+    }, 3000);
+  }
+
+  function toggleNode(node, recursive = false) {
+    const expander = node.querySelector(':scope > .content-wrapper > .node-expander');
+    const nestedContainer = node.querySelector(':scope > .nested-nodes');
+    if (!expander || !nestedContainer) return;
+    const isCollapsed = nestedContainer.classList.toggle('collapsed');
+    expander.classList.toggle('collapsed', isCollapsed);
+    node.setAttribute('aria-expanded', !isCollapsed);
+    if (recursive) {
+      const shouldCollapse = isCollapsed;
+      node.querySelectorAll('.nested-nodes').forEach(childContainer => {
+        childContainer.classList.toggle('collapsed', shouldCollapse);
+        const childNode = childContainer.parentElement;
+        const childExpander = childNode.querySelector(':scope > .content-wrapper > .node-expander');
+        if(childExpander) childExpander.classList.toggle('collapsed', shouldCollapse);
+        childNode.setAttribute('aria-expanded', !shouldCollapse);
+      });
+    }
+    rememberExpandState();
+  }
+
+  function updateToggleBtn(isExpanded) {
+    const btn = DOMElements.toggleExpandCollapseBtn;
+    const text = isExpanded ? 'Collapse All' : 'Expand All';
+    const iconName = isExpanded ? 'minimize' : 'maximize';
+    btn.innerHTML = `<i data-lucide="${iconName}"></i>`;
+    btn.dataset.state = isExpanded ? 'expanded' : 'collapsed';
+    btn.setAttribute('data-tooltip', text);
+    lucide.createIcons();
+  }
+
+  function setAllNodesExpanded(isExpanded) {
+      DOMElements.treeContainer.querySelectorAll('.nested-nodes').forEach(container => {
+          container.classList.toggle('collapsed', !isExpanded);
+          const expander = container.previousElementSibling.querySelector('.node-expander');
+          if (expander) expander.classList.toggle('collapsed', !isExpanded);
+          const owner = container.parentElement;
+          if (owner) owner.setAttribute('aria-expanded', String(isExpanded));
+      });
+      updateToggleBtn(isExpanded);
+  }
+
+  function highlightPath(node, add) {
+      let current = node;
+      while (current && current !== DOMElements.treeContainer) {
+          if (current.classList.contains('tree-node')) current.classList.toggle('path-highlight', add);
+          current = current.parentElement;
+      }
+  }
+
+  function clearPersistentPulse() {
+    DOMElements.treeContainer.querySelectorAll('.pulse-path').forEach(n => n.classList.remove('pulse-path'));
+  }
+
+  function setPersistentPulse(node) {
+    clearPersistentPulse();
+    let current = node;
+    while (current && current !== DOMElements.treeContainer) {
+      if (current.classList.contains('tree-node')) current.classList.add('pulse-path');
+      current = current.parentElement;
+    }
+  }
+
+  function setupEventListeners() {
+    document.querySelectorAll('.dropdown').forEach(setupHoverDropdown);
+
+    DOMElements.jsonInput.addEventListener('input', () => {
+        parseAndRender(DOMElements.jsonInput.value);
+        localStorage.setItem(STORAGE_KEYS.INPUT_JSON, DOMElements.jsonInput.value);
+    });
+
+    DOMElements.dragDropHint.addEventListener('click', () => {
+      DOMElements.inputWrapper.classList.add('is-hinted');
+      showToast('Drop your file into the text area above', 'info');
+      DOMElements.inputWrapper.addEventListener('animationend', () => {
+        DOMElements.inputWrapper.classList.remove('is-hinted');
+      }, { once: true });
+    });
+
+    DOMElements.formatDropdown.addEventListener('click', (e) => {
+        const item = e.target.closest('.dropdown-item');
+        if (!item) return;
+        const action = item.dataset.action;
+        if (action === 'format') {
+            if (state.currentJsonData) {
+                const formatted = JSON.stringify(state.currentJsonData, null, 2);
+                DOMElements.jsonInput.value = formatted;
+                localStorage.setItem(STORAGE_KEYS.INPUT_JSON, formatted);
+                parseAndRender(formatted);
+            }
+        } else if (action === 'minify') {
+            if (state.currentJsonData) {
+                const minified = JSON.stringify(state.currentJsonData);
+                DOMElements.jsonInput.value = minified;
+                localStorage.setItem(STORAGE_KEYS.INPUT_JSON, minified);
+                parseAndRender(minified);
+            }
+        }
+        DOMElements.formatDropdown.classList.remove('open');
+    });
+
+    DOMElements.fileDropdown.addEventListener('click', (e) => {
+        const item = e.target.closest('.dropdown-item');
+        if (!item) return;
+        const action = item.dataset.action;
+        if (action === 'sample') {
+            const sampleString = JSON.stringify(sampleJson, null, 2);
+            DOMElements.jsonInput.value = sampleString;
+            localStorage.setItem(STORAGE_KEYS.INPUT_JSON, sampleString);
+            parseAndRender(sampleString);
+        } else if (action === 'load-file') {
+            triggerFileSelect();
+        } else if (action === 'load-url') {
+            handleLoadFromUrl();
+        } else if (action === 'save') {
+            saveToFile();
+        }
+        DOMElements.fileDropdown.classList.remove('open');
+    });
+    
+    DOMElements.clearBtn.addEventListener('click', () => {
+      if (!DOMElements.jsonInput.value.trim()) return;
+      if (confirm('Are you sure you want to clear the input?')) {
+        DOMElements.jsonInput.value = '';
+        parseAndRender('');
+        localStorage.removeItem(STORAGE_KEYS.INPUT_JSON);
+        showToast('Input Cleared', 'success');
+      }
+    });
+    
+    let dragCounter = 0;
+    window.addEventListener('dragenter', e => {
+        e.preventDefault();
+        dragCounter++;
+        const isFileDrag = Array.from(e.dataTransfer.types).includes('Files');
+        if (isFileDrag && dragCounter === 1) {
+          document.body.classList.add('is-dragging-over');
+        }
+    });
+    window.addEventListener('dragleave', e => {
+        e.preventDefault();
+        dragCounter--;
+        if (dragCounter === 0) {
+          document.body.classList.remove('is-dragging-over');
+        }
+    });
+    window.addEventListener('dragover', e => e.preventDefault());
+    window.addEventListener('drop', e => {
+        e.preventDefault();
+        dragCounter = 0;
+        document.body.classList.remove('is-dragging-over');
+        handleFileDrop(e);
+    });
+
+    DOMElements.toggleExpandCollapseBtn.addEventListener('click', () => {
+      const willExpand = DOMElements.toggleExpandCollapseBtn.dataset.state === 'collapsed';
+      setAllNodesExpanded(willExpand);
+    });
+
+    DOMElements.searchInput.addEventListener('input', () => {
+      handleSearch();
+      DOMElements.searchClearBtn.style.display = DOMElements.searchInput.value ? 'inline-flex' : 'none';
+    });
+    DOMElements.searchClearBtn.addEventListener('click', () => {
+        DOMElements.searchInput.value = '';
+        DOMElements.searchInput.dispatchEvent(new Event('input'));
+        DOMElements.searchInput.focus();
+    });
+
+    DOMElements.searchPrevBtn.addEventListener('click', () => navigateSearchResults(-1));
+    DOMElements.searchNextBtn.addEventListener('click', () => navigateSearchResults(1));
+
+    DOMElements.treeContainer.addEventListener('click', e => {
+        const node = e.target.closest('.tree-node');
+        if (!node) return;
+        if (e.target.closest('.node-expander')) {
+            toggleNode(node, e.altKey || e.shiftKey);
+        } else {
+            updateInspector(node);
+        }
+    });
+
+    let lastHoveredNode = null;
+    DOMElements.treeContainer.addEventListener('pointerover', e => {
+      const node = e.target.closest('.tree-node');
+      if (node && node !== lastHoveredNode) {
+          if (lastHoveredNode) highlightPath(lastHoveredNode, false);
+          highlightPath(node, true);
+          lastHoveredNode = node;
+      }
+    });
+    DOMElements.treeContainer.addEventListener('pointerout', e => {
+        if(lastHoveredNode && !DOMElements.treeContainer.contains(e.relatedTarget)) {
+             highlightPath(lastHoveredNode, false);
+             lastHoveredNode = null;
+        }
+    });
+
+    DOMElements.treeContainer.addEventListener('mouseleave', () => {
+      const selected = DOMElements.treeContainer.querySelector('.tree-node.selected');
+      if (selected) {
+        setPersistentPulse(selected);
+      } else {
+         const root = DOMElements.treeContainer.querySelector('.tree-node[data-path="root"]');
+         if(root) setPersistentPulse(root);
+      }
+    });
+
+    DOMElements.inspectorTabs.addEventListener('click', e => {
+      if (e.target.classList.contains('tab')) {
+        DOMElements.inspectorTabs.querySelector('.active').classList.remove('active');
+        e.target.classList.add('active');
+        state.activeInspectorView = e.target.dataset.view;
+        const selectedNode = DOMElements.treeContainer.querySelector('.selected');
+        if(selectedNode) updateInspector(selectedNode);
+      }
+    });
+
+    DOMElements.copyMenu.addEventListener('click', (e) => {
+      const item = e.target.closest('.dropdown-item');
+      if (!item) return;
+      const mode = item.dataset.copy;
+      handleCopyAction(mode);
+      DOMElements.copyDropdown.classList.remove('open');
+    });
+
+    DOMElements.themeToggleBtn.addEventListener('click', toggleTheme);
+    DOMElements.shareBtn.addEventListener('click', generateShareLink);
+    DOMElements.treeContainer.addEventListener('contextmenu', showContextMenu);
+    window.addEventListener('click', () => {
+      DOMElements.contextMenu.style.display = 'none';
+    });
+
+    DOMElements.treeContainer.setAttribute('role', 'tree');
+    DOMElements.treeContainer.setAttribute('tabindex', '0');
+    DOMElements.treeContainer.addEventListener('keydown', handleTreeKeydown);
+  }
+
+  function handleSearch() {
+      const query = DOMElements.searchInput.value.trim();
+      const lowerCaseQuery = query.toLowerCase();
+      const allNodes = Array.from(DOMElements.treeContainer.querySelectorAll('.tree-node'));
+
+      const unhighlight = (element) => {
+          if (!element) return;
+          const marks = element.querySelectorAll('mark.search-match');
+          marks.forEach(mark => {
+              const parent = mark.parentNode;
+              if (parent) {
+                  parent.replaceChild(document.createTextNode(mark.textContent), mark);
+              }
+          });
+          element.normalize();
+      };
+
+      const highlightText = (element, regex) => {
+          if (!regex || !element) return;
+          const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
+          const nodesToProcess = [];
+          while (walker.nextNode()) {
+              if (walker.currentNode.parentElement.tagName.match(/^(MARK|SCRIPT|STYLE)$/)) continue;
+              nodesToProcess.push(walker.currentNode);
+          }
+          nodesToProcess.forEach(textNode => {
+              const text = textNode.nodeValue;
+              const matches = [...text.matchAll(regex)];
+              if (matches.length > 0) {
+                  const fragment = document.createDocumentFragment();
+                  let lastIndex = 0;
+                  matches.forEach(match => {
+                      const foundText = match[0];
+                      const startIndex = match.index;
+                      if (startIndex > lastIndex) {
+                          fragment.appendChild(document.createTextNode(text.substring(lastIndex, startIndex)));
+                      }
+                      const mark = document.createElement('mark');
+                      mark.className = 'search-match';
+                      mark.textContent = foundText;
+                      fragment.appendChild(mark);
+                      lastIndex = startIndex + foundText.length;
+                  });
+                  if (lastIndex < text.length) {
+                      fragment.appendChild(document.createTextNode(text.substring(lastIndex)));
+                  }
+                  textNode.parentNode.replaceChild(fragment, textNode);
+              }
+          });
+      };
+      
+      state.searchResults = [];
+      state.searchIndex = -1;
+      
+      const queryRegex = query ? new RegExp(query.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&"), 'gi') : null;
+
+      allNodes.forEach(node => {
+          const contentWrapper = node.querySelector('.content-wrapper');
+          unhighlight(contentWrapper);
+
+          const path = node.dataset.path;
+          const key = node.dataset.key;
+          const fullValue = getValueFromPath(path);
+          const valueType = getJsonType(fullValue);
+          let valueForSearching = '';
+
+          if (valueType === 'string' || valueType === 'number' || valueType === 'boolean' || valueType === 'null') {
+              valueForSearching = String(fullValue);
+          }
+
+          const isExactPathMatch = path.toLowerCase() === lowerCaseQuery;
+          const isPartialKeyMatch = key.toLowerCase().includes(lowerCaseQuery);
+          const isPartialValueMatch = valueForSearching.toLowerCase().includes(lowerCaseQuery);
+
+          if (query && (isExactPathMatch || isPartialKeyMatch || isPartialValueMatch)) {
+              if (isExactPathMatch) {
+                  const keyElement = node.querySelector('.node-key');
+                  const keyRegex = new RegExp(key.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&"), 'gi');
+                  highlightText(keyElement, keyRegex);
+              } else {
+                  highlightText(contentWrapper, queryRegex);
+              }
+              state.searchResults.push(node);
+          }
+      });
+      
+      if (query) {
+          const nodesToKeepVisible = new Set();
+          state.searchResults.forEach(matchNode => {
+              let current = matchNode;
+              while (current && current !== DOMElements.treeContainer) {
+                  if (current.classList.contains('tree-node')) {
+                      nodesToKeepVisible.add(current);
+                  }
+                  current = current.parentElement;
+              }
+          });
+
+          allNodes.forEach(node => {
+              node.classList.toggle('dimmed', !nodesToKeepVisible.has(node));
+          });
+          
+          nodesToKeepVisible.forEach(node => {
+              const nested = node.querySelector(':scope > .nested-nodes');
+              if (nested) {
+                  const expander = node.querySelector(':scope > .content-wrapper > .node-expander');
+                  nested.classList.remove('collapsed');
+                  if (expander) expander.classList.remove('collapsed');
+                  node.setAttribute('aria-expanded', 'true');
+              }
+          });
+          
+      } else {
+          allNodes.forEach(node => node.classList.remove('dimmed'));
+          restoreExpandState();
+      }
+
+      if (state.searchResults.length > 0) {
+          state.searchIndex = 0;
+          navigateSearchResults(0);
+      }
+      updateSearchNav();
+  }
+
+  function navigateSearchResults(direction) {
+      if (state.searchResults.length === 0) return;
+      
+      const prevSelectedMatch = document.querySelector('.search-match.selected');
+      if(prevSelectedMatch) prevSelectedMatch.classList.remove('selected');
+
+      state.searchIndex += direction;
+
+      if (state.searchIndex < 0) state.searchIndex = state.searchResults.length - 1;
+      if (state.searchIndex >= state.searchResults.length) state.searchIndex = 0;
+      
+      const targetNode = state.searchResults[state.searchIndex];
+      if (targetNode) {
+          updateInspector(targetNode);
+          targetNode.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      updateSearchNav();
+  }
+
+  function updateSearchNav() {
+      if (state.searchResults.length > 0) {
+          DOMElements.searchResults.textContent = `${state.searchIndex + 1} of ${state.searchResults.length}`;
+      } else {
+          DOMElements.searchResults.textContent = DOMElements.searchInput.value ? '0 matches' : '';
+      }
+      DOMElements.searchPrevBtn.disabled = state.searchResults.length <= 1;
+      DOMElements.searchNextBtn.disabled = state.searchResults.length <= 1;
+  }
+
+  function rememberExpandState() {
+    state.lastExpandedState.clear();
+    DOMElements.treeContainer.querySelectorAll('.nested-nodes:not(.collapsed)').forEach(container => {
+      const owner = container.parentElement;
+      if (owner && owner.dataset.path) state.lastExpandedState.add(owner.dataset.path);
+    });
+  }
+
+  function restoreExpandState() {
+    if (!state.lastExpandedState.size) return;
+    DOMElements.treeContainer.querySelectorAll('.nested-nodes').forEach(container => {
+      const owner = container.parentElement;
+      const path = owner?.dataset?.path;
+      const shouldOpen = path && state.lastExpandedState.has(path);
+      container.classList.toggle('collapsed', !shouldOpen);
+      const expander = owner?.querySelector(':scope > .content-wrapper > .node-expander');
+      if (expander) expander.classList.toggle('collapsed', !shouldOpen);
+      if (owner) owner.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+    });
+  }
+
+  function handleTreeKeydown(e) {
+    const visibleNodes = Array.from(DOMElements.treeContainer.querySelectorAll('.tree-node')).filter(node => node.offsetParent !== null);
+    const selected = DOMElements.treeContainer.querySelector('.tree-node.selected') || visibleNodes[0];
+    const idx = visibleNodes.indexOf(selected);
+    if (idx === -1) return;
+
+    const focusNode = (node) => { if (node) { updateInspector(node); node.focus(); } };
+
+    const keyActions = {
+      'ArrowDown': () => focusNode(visibleNodes[idx + 1]),
+      'ArrowUp': () => focusNode(visibleNodes[idx - 1]),
+      'ArrowRight': () => {
+        const nested = selected.querySelector(':scope > .nested-nodes');
+        if (nested && nested.classList.contains('collapsed')) toggleNode(selected);
+      },
+      'ArrowLeft': () => {
+        const nested = selected.querySelector(':scope > .nested-nodes');
+        if (nested && !nested.classList.contains('collapsed')) {
+          toggleNode(selected);
+        } else {
+          focusNode(selected.parentElement?.closest('.tree-node'));
+        }
+      },
+      'Enter': () => toggleNode(selected),
+      ' ': () => toggleNode(selected),
+    };
+
+    if (keyActions[e.key]) {
+      e.preventDefault();
+      keyActions[e.key]();
+    }
+  }
+
+  function showContextMenu(e) {
+      e.preventDefault();
+      const node = e.target.closest('.tree-node');
+      if (!node) return;
+      const path = node.dataset.path;
+      const key = node.dataset.key;
+      DOMElements.contextMenu.innerHTML = `
+        <div class="context-menu-item" data-action="copy-key"><i data-lucide="copy"></i> Copy Key: "${key}"</div>
+        <div class="context-menu-item" data-action="copy-value"><i data-lucide="copy"></i> Copy Value</div>
+        <div class="context-menu-item" data-action="copy-path"><i data-lucide="copy"></i> Copy Path</div>
+      `;
+      lucide.createIcons();
+      DOMElements.contextMenu.querySelector('[data-action="copy-key"]').onclick = () => copyToClipboard(key, "Key Copied");
+      const value = getValueFromPath(path);
+      const valueString = typeof value === 'string' ? value : JSON.stringify(value);
+      DOMElements.contextMenu.querySelector('[data-action="copy-value"]').onclick = () => copyToClipboard(valueString, "Value Copied");
+      DOMElements.contextMenu.querySelector('[data-action="copy-path"]').onclick = () => copyToClipboard(path, "Path Copied");
+      DOMElements.contextMenu.style.display = 'block';
+      const { offsetWidth: menuWidth, offsetHeight: menuHeight } = DOMElements.contextMenu;
+      const { innerWidth: winWidth, innerHeight: winHeight } = window;
+      let left = e.clientX + menuWidth > winWidth ? winWidth - menuWidth - 5 : e.clientX;
+      let top = e.clientY + menuHeight > winHeight ? winHeight - menuHeight - 5 : e.clientY;
+      DOMElements.contextMenu.style.left = `${left}px`;
+      DOMElements.contextMenu.style.top = `${top}px`;
+  }
+  
+  function handleCopyAction(mode) {
+      const copyActions = {
+        path: () => ({ text: DOMElements.inspectorPath.textContent, msg: 'Path Copied' }),
+        value: () => {
+          const text = typeof state.inspectorCurrentValue === 'string' ? state.inspectorCurrentValue : JSON.stringify(state.inspectorCurrentValue, null, 2);
+          return { text, msg: 'Value Copied' };
+        },
+        json: () => ({ text: JSON.stringify(state.inspectorCurrentValue, null, 2), msg: 'Formatted JSON Copied' }),
+        minjson: () => ({ text: JSON.stringify(state.inspectorCurrentValue), msg: 'Minified JSON Copied' }),
+      };
+      if (copyActions[mode]) {
+        const { text, msg } = copyActions[mode]();
+        copyToClipboard(text, msg);
+      }
+  }
+
+  function initTheme() {
+    const savedTheme = localStorage.getItem(STORAGE_KEYS.THEME);
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setTheme(savedTheme || (systemPrefersDark ? 'dark' : 'light'));
+  }
+
+  function setTheme(theme) {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem(STORAGE_KEYS.THEME, theme);
+    const iconName = theme === 'dark' ? 'sun' : 'moon';
+    DOMElements.themeToggleBtn.innerHTML = `<i data-lucide="${iconName}"></i>`;
+    lucide.createIcons();
+  }
+
+  function toggleTheme() {
+    setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+  }
+  
+  function loadFromURLOrSample() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const dataParam = urlParams.get('data');
+      if (dataParam) {
+          try {
+              const decodedJson = atob(dataParam);
+              DOMElements.jsonInput.value = decodedJson;
+              parseAndRender(decodedJson);
+              showToast("Loaded from link", "success");
+              const pathParam = urlParams.get('path');
+              if (pathParam) {
+                  setTimeout(() => {
+                      const decodedPath = decodeURIComponent(pathParam);
+                      const targetNode = DOMElements.treeContainer.querySelector(`.tree-node[data-path="${decodedPath}"]`);
+                      if (targetNode) {
+                        revealNode(targetNode);
+                      }
+                  }, 100);
+              }
+              return true;
+          } catch(e) {
+              console.error("Error loading from URL:", e);
+              showToast("Failed to load from link", "info");
+          }
+      }
+      
+      const lastInput = localStorage.getItem(STORAGE_KEYS.INPUT_JSON);
+      if (lastInput) {
+          DOMElements.jsonInput.value = lastInput;
+          parseAndRender(lastInput);
+          return true;
+      } else {
+          const sampleString = JSON.stringify(sampleJson, null, 2);
+          DOMElements.jsonInput.value = sampleString;
+          parseAndRender(sampleString);
+          return true;
+      }
+      return false;
+  }
+  
+  function saveToFile() {
+      if (!DOMElements.jsonInput.value.trim()) {
+          showToast('Nothing to save', 'info');
+          return;
+      }
+      const blob = new Blob([DOMElements.jsonInput.value], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `data-${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('File saved', 'success');
+  }
+
+  function generateShareLink() {
+      if (!state.currentJsonData) {
+          showToast('Nothing to share', 'info');
+          return;
+      }
+      try {
+          const jsonString = JSON.stringify(state.currentJsonData);
+          const encodedData = btoa(jsonString);
+          let url = `${window.location.origin}${window.location.pathname}?data=${encodedData}`;
+          
+          const selectedNode = DOMElements.treeContainer.querySelector('.tree-node.selected');
+          if (selectedNode) {
+            const path = selectedNode.dataset.path;
+            url += `&path=${encodeURIComponent(path)}`;
+          }
+          copyToClipboard(url, 'Sharable link copied');
+      } catch (e) {
+          showToast('Failed to create link', 'info');
+      }
+  }
+
+  function handleFileDrop(e) {
+      const files = e.dataTransfer.files;
+      if (!files || files.length === 0) return;
+      if (e.preventDefault) e.preventDefault();
+      const file = files[0];
+      if (file && (file.type === "application/json" || file.name.endsWith('.json'))) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+              DOMElements.jsonInput.value = event.target.result;
+              localStorage.setItem(STORAGE_KEYS.INPUT_JSON, event.target.result);
+              parseAndRender(event.target.result);
+              showToast(`Loaded: ${file.name}`, 'success');
+          };
+          reader.readAsText(file);
+      } else {
+          showToast('Please drop a valid .json file', 'info');
+      }
+  }
+
+  // === NEW: "Load from URL" feature implementation ===
+  async function handleLoadFromUrl() {
+    const { value: url } = await Swal.fire({
+        title: 'Load JSON from URL',
+        input: 'url',
+        inputPlaceholder: 'https://...',
+        confirmButtonText: 'Load',
+        showCancelButton: true,
+        customClass: {
+            popup: 'custom-swal-popup',
+        },
+        showLoaderOnConfirm: true,
+        didOpen: () => { // Add a custom container for status text
+            const container = Swal.getHtmlContainer();
+            if (container) {
+                container.innerHTML = `<div id="swal-status-text"></div>`;
+            }
+        },
+        preConfirm: async (url) => {
+            const updateStatus = (text) => {
+                const statusEl = Swal.getHtmlContainer()?.querySelector('#swal-status-text');
+                if(statusEl) statusEl.textContent = text;
+            };
+
+            try {
+                // Stage 1: Verify file size with a HEAD request
+                updateStatus('Verifying file size...');
+                let fileSize = -1;
+                try {
+                    const headResponse = await axios.head(url, { timeout: 5000 });
+                    if (headResponse.headers['content-length']) {
+                        fileSize = parseInt(headResponse.headers['content-length'], 10);
+                        if (fileSize > 1024 * 1024) { // 1MB limit
+                           throw new Error('File size exceeds 1MB limit.');
+                        }
+                    }
+                } catch (e) {
+                    if (e.message.includes('1MB')) throw e; // Re-throw the size error
+                    // Otherwise, ignore HEAD errors and proceed to download
+                }
+
+                // Stage 2: Download file content
+                updateStatus(fileSize === -1 ? 'Downloading... (Size unknown)' : 'Downloading...');
+                const getResponse = await axios.get(url, {
+                    timeout: 15000,
+                    transformResponse: res => res 
+                });
+                const jsonText = getResponse.data;
+                
+                // Stage 3: Fallback size check after download
+                if (fileSize === -1) {
+                    const postDownloadSize = new Blob([jsonText]).size;
+                    if (postDownloadSize > 1024 * 1024) {
+                        throw new Error('Downloaded file exceeds 1MB limit.');
+                    }
+                }
+
+                // Stage 4: Parse & Render
+                updateStatus('Parsing JSON...');
+                try {
+                    JSON.parse(jsonText); // Test parsing first
+                } catch(e) {
+                    throw new Error('Failed to parse JSON. Please check the file format.');
+                }
+                
+                updateStatus('Rendering tree view...');
+                await new Promise(resolve => setTimeout(() => {
+                    DOMElements.jsonInput.value = jsonText;
+                    localStorage.setItem(STORAGE_KEYS.INPUT_JSON, jsonText);
+                    parseAndRender(jsonText);
+                    resolve();
+                }, 50));
+                
+                return true;
+            
+            } catch (error) {
+                let errorMessage = 'An unknown error occurred.';
+                if (error.response) {
+                    errorMessage = `Could not fetch from URL. (Status: ${error.response.status})`;
+                } else if (error.request) {
+                    errorMessage = 'Network request failed. Please check your connection.';
+                } else {
+                    errorMessage = error.message;
+                }
+                Swal.showValidationMessage(errorMessage);
+            }
+        },
+        allowOutsideClick: () => !Swal.isLoading()
+    });
+
+    if (url) { // This block only runs if preConfirm was successful
+        showToast('Successfully loaded from URL', 'success');
+    }
+  }
+
+  // === NEW: "Upcoming Updates" Feature Implementation ===
+  function showUpdatesModal(announcement) {
+      Swal.fire({
+          title: `<strong>${announcement.title}</strong>`,
+          icon: 'info',
+          html: announcement.detailed_html,
+          confirmButtonText: 'Got it!',
+          customClass: {
+              popup: 'custom-swal-popup',
+          }
+      });
+  }
+
+  function initializeUpdatesFeature() {
+      const announcement = {
+          version: "3.0.0",
+          title: "即将到来 (Coming Soon)",
+          date: "预计 2025-11-20",
+          concise_html: `
+              <div class="update-popover-content">
+                  <h4>${"即将到来 (Coming Soon)"}<br><small style="color:var(--muted);">${"v3.0.0 (预计 2025-11-20)"}</small></h4>
+                  <ul>
+                      <li>🚀 <strong>界面革新：</strong>化繁为简，合并输入区与树状图。</li>
+                      <li>✨ <strong>新格式支持：</strong>原生支持 JSON Lines (.jsonl)。</li>
+                      <li>🔮 <strong>全新视图：</strong>引入关系网络图，探索数据联系。</li>
+                  </ul>
+                  <a class="learn-more" data-action="learn-more">了解更多...</a>
+              </div>
+          `,
+          detailed_html: `
+              <div style="text-align: left; line-height: 1.7;">
+                  <p>我们正在重新构想您与 JSON 数据的交互方式。下个版本将迎来一次全面的进化，旨在让您的工作流更顺畅、洞察更深刻。</p>
+                  <hr style="border: 0; border-top: 1px solid var(--separator-color); margin: 16px 0;">
+                  <h4>🚀 界面革新：告别面板切换</h4>
+                  <p>我们将智能合并「输入区」与「树状图」，提供一个无缝、宽敞且高度专注的工作环境。</p>
+                  <h4>✨ 拥抱流式数据：原生支持 .jsonl</h4>
+                  <p>您只需粘贴或拖入 .jsonl 文件，应用就会智能地将每一行识别为一个独立的 JSON 对象，无需任何预处理。</p>
+                  <h4>🔮 超越线性结构：用关系网络图探索</h4>
+                  <p>全新的「关系网络图」视图能将您的 JSON 渲染成动态网络，将对象间的引用和嵌套关系一览无余。</p>
+              </div>
+          `,
+      };
+
+      const lastSeenVersion = localStorage.getItem(STORAGE_KEYS.LAST_SEEN_UPDATE);
+      const isNewUpdate = announcement.version !== lastSeenVersion;
+      const notificationDot = DOMElements.updatesBtn.querySelector('.notification-dot');
+
+      if (isNewUpdate) {
+          notificationDot.style.display = 'block';
+      }
+
+      const tippyInstance = tippy(DOMElements.updatesBtn, {
+          content: announcement.concise_html,
+          allowHTML: true,
+          trigger: 'click',
+          interactive: true,
+          placement: 'bottom-end',
+          theme: 'popover',
+          onShow(instance) {
+              if (isNewUpdate) {
+                  localStorage.setItem(STORAGE_KEYS.LAST_SEEN_UPDATE, announcement.version);
+                  notificationDot.style.animation = 'none'; // 停止动画
+                  // 淡出效果
+                  Object.assign(notificationDot.style, {
+                      transition: 'opacity 300ms ease-out',
+                      opacity: '0'
+                  });
+                  notificationDot.addEventListener('transitionend', () => {
+                       notificationDot.style.display = 'none';
+                  }, { once: true });
+              }
+          },
+          onMount(instance) {
+              // 使用事件委托处理 "了解更多" 链接的点击
+              instance.popper.addEventListener('click', (e) => {
+                  if (e.target && e.target.dataset.action === 'learn-more') {
+                      e.preventDefault();
+                      showUpdatesModal(announcement);
+                      instance.hide(); // 关闭 popover
+                  }
+              });
+          }
+      });
+  }
+
+  initialize();
+})();
+</script>
+
+</body>
+</html>
